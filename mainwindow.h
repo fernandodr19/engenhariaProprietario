@@ -7,17 +7,19 @@ struct EngProp {
     QString obra;
     QString evento;
     QString tipo;
-    QString pasta;
+    QString nome;
     QString usuario;
     QString empresa;
     QString hora;
     QString caminho;
     QString arquivos;
+    QString data;
+    int epochTime;
 };
 
-class QLineEdit;
-class QPushButton;
+class QComboBox;
 class QTableWidget;
+class QTabWidget;
 
 class MainWindow : public QScrollArea
 {
@@ -26,15 +28,25 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+private slots:
+    void orderIndexChanged(int index);
+
 private:
     void load();
-    void populateTable();
+    QStringList getFiles();
+    QString getDate(QString fileName);
+    int getEpochTime(QString date, QString time);
+    void addEngProp(const EngProp engProp);
+    int indexOfFile(QString key);
+    void populateTables();
 
-    QLineEdit *m_fileName;
-    QPushButton *m_loadFileButton;
+    QString m_path;
+
+    QComboBox *m_orderBy;
     QTableWidget *m_table;
 
-    QVector<EngProp> m_data;
+    QVector<EngProp> m_tableData;
+    QVector<EngProp> m_database;
 };
 
 #endif // MAINWINDOW_H
