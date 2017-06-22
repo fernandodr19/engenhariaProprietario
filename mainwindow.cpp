@@ -8,17 +8,29 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QComboBox>
+#include <QHeaderView>
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QDateTime>
+#include <QDialog>
+#include <QFormLayout>
+#include <QDialogButtonBox>
+#include <QCheckBox>
+#include <QSettings>
+#include <QGroupBox>
+#include <QIcon>
 
 #include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
     : QScrollArea(parent)
 {
+    setMinimumWidth(1366);
+    setMinimumHeight(768);
     setWidgetResizable(true);
     setFrameShape(QFrame::NoFrame);
+    setWindowTitle("Consulta EP");
+    setWindowIcon(QIcon("icons/logo32.ico"));
 
     QWidget *proxyWidget = new QWidget;
     setWidget(proxyWidget);
@@ -32,29 +44,66 @@ MainWindow::MainWindow(QWidget *parent)
     m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";
 
     m_orderBy = new QComboBox();
-    m_orderBy->addItems({"Data crescente", "Data decrescente"});
-    //    connect(m_orderBy, &QComboBox::currentIndexChanged, [this](int index) { orderIndexChanged(index); });
+    m_orderBy->addItem("Mais antigo");
+    m_orderBy->addItem("Mais recente");
+    connect(m_orderBy, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), [this](int index) {
+        if(index == 1)
+            m_crescent = true;
+        else
+            m_crescent = false;
+        invertData();
+    });
+
+    m_filterCategory = new QComboBox();
+    m_filterCategory->addItem("Operações atuais");
+    m_filterCategory->addItem("Histórico de operações");
+    connect(m_filterCategory, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), [this](int index) {
+        if(index == 1)
+            m_historicFilter = true;
+        else
+            m_historicFilter = false;
+        reloadTable();
+    });
 
 
     m_table = new QTableWidget(0, 10);
-    m_table->setHorizontalHeaderLabels({"Obra", "Evento", "Tipo", "Pasta", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+    m_table->setHorizontalHeaderLabels({"Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+    connect(m_table->horizontalHeader(), &QHeaderView::sectionDoubleClicked, [this](int index) { applyFilter(index); });
 
     int row = 0;
-    gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, 0);
-    gridLayout->addWidget(new QLabel("Ordenar por :"), row, 1);
-    gridLayout->addWidget(m_orderBy, row++, 2);
-    gridLayout->addWidget(m_table, row++, 0, 1, 3);
+    int col = 0;
+    gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
+    gridLayout->addWidget(new QLabel("Listar"), row, col++);
+    gridLayout->addWidget(m_filterCategory, row, col++);
+    gridLayout->addWidget(new QLabel("Ordenar por :"), row, col++);
+    gridLayout->addWidget(m_orderBy, row++, col++);
+    gridLayout->addWidget(m_table, row++, 0, 1, col);
 
     load();
-    populateTables();
+    loadData();
+    populateTable();
 }
 
 MainWindow::~MainWindow()
 {
-
+    save();
 }
 
 void MainWindow::load()
+{
+    m_historicFilter = false;
+    m_releasedFilter = true;
+    m_approvedFilter = false;
+    m_approvedWithCommentsFilter = false;
+    m_reprovedFilter = false;
+}
+
+void MainWindow::save()
+{
+    qDebug() << "saved";
+}
+
+void MainWindow::loadData()
 {
     for(QString fileName : getFiles()) {
         QFile file(m_path + "\\" + fileName);
@@ -82,7 +131,7 @@ void MainWindow::load()
             engProp.empresa = fields[5];
             engProp.hora = fields[6];
             engProp.caminho = fields[7];
-            engProp.arquivos = fields[8];
+            engProp.arquivo = fields[8];
             engProp.data = data;
             engProp.epochTime = getEpochTime(data, engProp.hora);
             if(engProp.evento == "Aprovado Cliente" ||
@@ -99,8 +148,7 @@ void MainWindow::load()
         return a.epochTime < b.epochTime;
     });
 
-    for(EngProp engProp : m_database)
-        addEngProp(engProp);
+    reloadTable();
 }
 
 QStringList MainWindow::getFiles()
@@ -155,17 +203,41 @@ int MainWindow::getEpochTime(QString date, QString time)
     return dateTime.toSecsSinceEpoch();
 }
 
-void MainWindow::addEngProp(const EngProp engProp)
+void MainWindow::reloadTable()
 {
-    QString key = engProp.nome;
-    QString evento = engProp.evento;
+    m_tableData.clear();
 
-    int index = indexOfFile(key);
-    if(index != -1)
-        m_tableData.removeAt(index);
+    QStringList eventos = getEventos();
+    for(EngProp engProp : m_database) {
+        QString key = engProp.nome;
+        QString evento = engProp.evento;
 
-    if(evento == "Liberado para Cliente")
-        m_tableData.push_back(engProp);
+        int index = indexOfFile(key);
+        if(!m_historicFilter) {
+            if(index != -1)
+                m_tableData.removeAt(index);
+        }
+
+        if(eventos.contains(evento))
+            m_tableData.push_back(engProp);
+    }
+
+    populateTable();
+}
+
+QStringList MainWindow::getEventos()
+{
+    QStringList eventos;
+    if(m_releasedFilter)
+        eventos.push_back("Liberado para Cliente");
+    if(m_approvedFilter)
+        eventos.push_back("Aprovado Cliente");
+    if(m_approvedWithCommentsFilter)
+        eventos.push_back("Aprovado Cliente c/ Ressalvas");
+    if(m_reprovedFilter)
+        eventos.push_back("Reprovado Cliente");
+    return eventos;
+
 }
 
 int MainWindow::indexOfFile(QString key)
@@ -178,7 +250,7 @@ int MainWindow::indexOfFile(QString key)
     return -1;
 }
 
-void MainWindow::populateTables()
+void MainWindow::populateTable()
 {
     m_table->clearContents();
     m_table->setRowCount(0);
@@ -193,13 +265,70 @@ void MainWindow::populateTables()
         m_table->setItem(i, 5, new QTableWidgetItem(engProp.empresa));
         m_table->setItem(i, 6, new QTableWidgetItem(engProp.hora));
         m_table->setItem(i, 7, new QTableWidgetItem(engProp.caminho));
-        m_table->setItem(i, 8, new QTableWidgetItem(engProp.arquivos));
+        m_table->setItem(i, 8, new QTableWidgetItem(engProp.arquivo));
         m_table->setItem(i, 9, new QTableWidgetItem(engProp.data));
     }
     m_table->resizeColumnsToContents();
 }
 
-void MainWindow::orderIndexChanged(int index)
+void MainWindow::applyFilter(int index)
 {
+    if(index == 1) {
+        QDialog dialog;
+        dialog.setWindowTitle("Filtros");
+        dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
+        QFormLayout* formLayout = new QFormLayout();
+        dialog.setLayout(formLayout);
+
+        formLayout->addRow(new QLabel("Eventos a serem filtrados:"));
+
+        QVBoxLayout *vBox = new QVBoxLayout;
+
+        QCheckBox  *releasedBox = new QCheckBox ("Liberado para Cliente");
+        releasedBox->setChecked(m_releasedFilter);
+        vBox->addWidget(releasedBox);
+        QCheckBox  *approvedBox = new QCheckBox ("Aprovado Cliente");
+        approvedBox->setChecked(m_approvedFilter);
+        vBox->addWidget(approvedBox);
+        QCheckBox  *approvedWithCommentsBox = new QCheckBox ("Aprovado Cliente c/ Ressalvas");
+        approvedWithCommentsBox->setChecked(m_approvedWithCommentsFilter);
+        vBox->addWidget(approvedWithCommentsBox);
+        QCheckBox  *reprovedBox = new QCheckBox ("Reprovado Cliente");
+        reprovedBox->setChecked(m_reprovedFilter);
+        vBox->addWidget(reprovedBox);
+
+        QGroupBox *groupBox = new QGroupBox();
+        groupBox->setLayout(vBox);
+
+        formLayout->addRow(groupBox);
+
+        QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
+        formLayout->addRow(buttonBox);
+        connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
+        connect(buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
+
+        if(dialog.exec() != QDialog::Accepted)
+            return;
+
+        m_releasedFilter = releasedBox->isChecked();
+        m_approvedFilter = approvedBox->isChecked();
+        m_approvedWithCommentsFilter = approvedWithCommentsBox->isChecked();
+        m_reprovedFilter = reprovedBox->isChecked();
+
+        reloadTable();
+    }
+}
+
+void MainWindow::invertData()
+{
+    QVector<EngProp> clone;
+    for(int i = m_tableData.size() - 1; i >= 0; i--)
+        clone.push_back(m_tableData[i]);
+
+    m_tableData.clear();
+    for(EngProp engProp : clone)
+        m_tableData.push_back(engProp);
+
+    populateTable();
 }

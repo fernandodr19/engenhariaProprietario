@@ -12,9 +12,14 @@ struct EngProp {
     QString empresa;
     QString hora;
     QString caminho;
-    QString arquivos;
+    QString arquivo;
     QString data;
     int epochTime;
+};
+
+enum Filter {
+    Filter_Actual,
+    Filter_Historic,
 };
 
 class QComboBox;
@@ -29,21 +34,33 @@ public:
     ~MainWindow();
 
 private slots:
-    void orderIndexChanged(int index);
+    void applyFilter(int index);
 
 private:
     void load();
+    void save();
+    void loadData();
     QStringList getFiles();
     QString getDate(QString fileName);
     int getEpochTime(QString date, QString time);
-    void addEngProp(const EngProp engProp);
+    void reloadTable();
     int indexOfFile(QString key);
-    void populateTables();
+    void populateTable();
+    QStringList getEventos();
+    void invertData();
 
     QString m_path;
 
     QComboBox *m_orderBy;
+    QComboBox *m_filterCategory;
     QTableWidget *m_table;
+
+    bool m_crescent;//crescente ou decrescente
+    bool m_historicFilter; //historico/atual
+    bool m_releasedFilter;
+    bool m_approvedFilter;
+    bool m_approvedWithCommentsFilter;
+    bool m_reprovedFilter;
 
     QVector<EngProp> m_tableData;
     QVector<EngProp> m_database;
