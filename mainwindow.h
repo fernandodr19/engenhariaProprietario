@@ -18,16 +18,12 @@ struct EngProp {
     int epochTime;
 };
 
-struct Path {
-    QMap<QString, Path> m_children;
-    QString name;
-    bool isChecked;
-};
-
 class QComboBox;
 class QTableWidget;
 class QTabWidget;
 class QPushButton;
+class QTreeWidget;
+class QTreeWidgetItem;
 
 class MainWindow : public QScrollArea
 {
@@ -46,13 +42,15 @@ private:
     QStringList getFiles();
     QString getDate(QString fileName);
     int getEpochTime(QString date, QString time);
-    void reloadTable();
+    void reloadTableData();
     int indexOfFile(QString key);
     void populateTable();
     QStringList getEventos();
     void invertData();
-    void getPathMap();
+    QTreeWidget* getTree();
     void openMenu();
+    void paintTable();
+//    void visitTree(QStringList &list, QTreeWidgetItem *item);
 
     QString m_path;
 

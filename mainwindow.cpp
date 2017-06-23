@@ -73,9 +73,8 @@ MainWindow::MainWindow(QWidget *parent)
             m_historicFilter = true;
         else
             m_historicFilter = false;
-        reloadTable();
+        reloadTableData();
     });
-
 
     m_table = new QTableWidget(0, 10);
     m_table->setHorizontalHeaderLabels({"Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
@@ -95,7 +94,6 @@ MainWindow::MainWindow(QWidget *parent)
     load();
     loadData();
     //    populateTable();
-    getPathMap();
 }
 
 MainWindow::~MainWindow()
@@ -111,7 +109,7 @@ void MainWindow::load()
     m_approvedWithCommentsFilter = false;
     m_reprovedFilter = false;
     m_headersName = new QStringList({"Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
-//    m_showColumns = new QVector<bool>();
+    //    m_showColumns = new QVector<bool>();
     for(int i = 0; i < m_headersName->size(); i++)
         m_showColumns.push_back(true);
 
@@ -167,7 +165,7 @@ void MainWindow::loadData()
         return a.epochTime < b.epochTime;
     });
 
-    reloadTable();
+    reloadTableData();
 }
 
 QStringList MainWindow::getFiles()
@@ -222,7 +220,7 @@ int MainWindow::getEpochTime(QString date, QString time)
     return dateTime.toSecsSinceEpoch();
 }
 
-void MainWindow::reloadTable()
+void MainWindow::reloadTableData()
 {
     m_tableData.clear();
 
@@ -300,6 +298,7 @@ void MainWindow::populateTable()
             m_table->setItem(i, col, new QTableWidgetItem(engProp.data));
     }
     m_table->resizeColumnsToContents();
+    paintTable();
 }
 
 void MainWindow::applyFilter(int index)
@@ -348,7 +347,7 @@ void MainWindow::applyFilter(int index)
         m_approvedWithCommentsFilter = approvedWithCommentsBox->isChecked();
         m_reprovedFilter = reprovedBox->isChecked();
 
-        reloadTable();
+        reloadTableData();
     }
 
     if(index == 7) {
@@ -360,27 +359,7 @@ void MainWindow::applyFilter(int index)
         QFormLayout* formLayout = new QFormLayout();
         dialog.setLayout(formLayout);
 
-        //        QLabel *desirableWordsLabel = new QLabel("Palavras desejáveis:");
-        //        QTextEdit *desirableWords = new QTextEdit();
-        //        formLayout->addRow(new QLabel("Palavras desejáveis:"), desirableWords);
-
-        //        QTextEdit *undesirableWords = new QTextEdit();
-        //        formLayout->addRow(new QLabel("Palavras indesejáveis:"), undesirableWords);
-
-        getPathMap();
-
-        QTreeWidget *treeWidget = new QTreeWidget();
-        treeWidget->setColumnCount(1);
-        QList<QTreeWidgetItem *> items;
-        for (int i = 0; i < 10; ++i) {
-            QTreeWidgetItem *item = new QTreeWidgetItem((QTreeWidget*)0, QStringList(QString("item: %1").arg(i)));
-            item->setFlags(item->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
-            item->setCheckState(0, Qt::Checked);
-            items.append(item);
-        }
-        treeWidget->insertTopLevelItems(0, items);
-        treeWidget->itemAt(0, 0)->addChild(new QTreeWidgetItem((QTreeWidget*)0, QStringList(QString("item: %1").arg(90))));
-
+        QTreeWidget* treeWidget = getTree();
         formLayout->addRow(treeWidget);
 
         QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
@@ -390,6 +369,12 @@ void MainWindow::applyFilter(int index)
 
         if(dialog.exec() != QDialog::Accepted)
             return;
+
+        //http://www.qtcentre.org/threads/31578-List-all-elements-of-a-QTreeWidget-from-top-to-bottom
+//        for(int i = 0; i < treeWidget->topLevelItemCount(); i++) {
+//            for()
+//        }
+
     }
 }
 
@@ -406,37 +391,65 @@ void MainWindow::invertData()
     populateTable();
 }
 
-void MainWindow::getPathMap()
+QTreeWidget* MainWindow::getTree()
 {
-    QMap<QString, Path> root;
+    QTreeWidget *treeWidget = new QTreeWidget();
+    QTreeWidgetItem *topLevelItem;
+
+    QStringList singlePaths;
     for(EngProp engProp : m_database) {
+        QString path = engProp.caminho;
 
-        QString caminho = engProp.caminho;//"\\Lote 08\\LT\\Trecho 1 - LT Rio das Éguas - Barreiras II C2\\02 - Topografia\\Planta Cadastral de Propriedades";
-        qDebug() << caminho;
-        QStringList fields = caminho.split("\\");
+        if((path.length() - path.lastIndexOf(".")) == 4)
+            path = path.mid(0, path.lastIndexOf("\\"));
 
-        fields.removeOne("");
-        for(int i = 0; i < fields.size() - 1; i++) {
-            QString actual = fields[i];
-            QString next = fields[i+1];
-            root[actual].m_children[next];//.name = next;
+        if(!singlePaths.contains(path))
+            singlePaths.push_back(path);
+    }
+
+    for(QString path : singlePaths) {
+        QStringList tokens = path.split("\\");
+        tokens.removeOne("");
+
+        // add root folder as top level item if treeWidget doesn't already have it
+        if (treeWidget->findItems(tokens[0], Qt::MatchFixedString).isEmpty()) {
+            topLevelItem = new QTreeWidgetItem;
+            topLevelItem->setFlags(topLevelItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
+            topLevelItem->setCheckState(0, Qt::Checked);
+            topLevelItem->setText(0, tokens[0]);
+            topLevelItem->setIcon(0, QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\file.png"));
+            treeWidget->addTopLevelItem(topLevelItem);
         }
+
+        QTreeWidgetItem *parentItem = topLevelItem;
+
+        // iterate through non-root directories (file name comes after)
+        for (int i = 1; i < tokens.size() - 1; ++i) {
+            // iterate through children of parentItem to see if this directory exists
+            bool thisDirectoryExists = false;
+            for (int j = 0; j < parentItem->childCount(); ++j) {
+                if (tokens[i] == parentItem->child(j)->text(0)) {
+                    thisDirectoryExists = true;
+                    parentItem = parentItem->child(j);
+                    break;
+                }
+            }
+
+            if (!thisDirectoryExists) {
+                parentItem = new QTreeWidgetItem(parentItem);
+                parentItem->setFlags(parentItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
+                parentItem->setCheckState(0, Qt::Checked);
+                parentItem->setText(0, tokens[i]);
+                parentItem->setIcon(0, QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\file.png"));
+            }
+        }
+
+        QTreeWidgetItem *childItem = new QTreeWidgetItem(parentItem);
+        childItem->setFlags(childItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
+        childItem->setCheckState(0, Qt::Checked);
+        childItem->setText(0, tokens.last());
     }
-    //    root["Lote 8"].m_children["LT"];
-    //    root["LT"].m_children["blabla"];
-    //    root["blablabla"].m_children["kitkat"];
-
-    //    root["Lote 9"].m_children["LT"];
-
-    QMapIterator<QString, Path> i(root);
-    while(i.hasNext()) {
-        i.next();
-        qDebug() << i.key();// << ": " << i.value().name;
-    }
-
-
-
-
+    return treeWidget;
 }
 
 void MainWindow::openMenu()
