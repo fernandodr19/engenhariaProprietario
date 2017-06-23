@@ -371,9 +371,9 @@ void MainWindow::applyFilter(int index)
             return;
 
         //http://www.qtcentre.org/threads/31578-List-all-elements-of-a-QTreeWidget-from-top-to-bottom
-//        for(int i = 0; i < treeWidget->topLevelItemCount(); i++) {
-//            for()
-//        }
+        //        for(int i = 0; i < treeWidget->topLevelItemCount(); i++) {
+        //            for()
+        //        }
 
     }
 }
@@ -492,4 +492,26 @@ void MainWindow::openMenu()
         m_table->setColumnHidden(i, !show);
     }
     populateTable();
+}
+
+void MainWindow::paintTable()
+{
+    int day = 86400;//secs
+    int actualTime = QDateTime::currentSecsSinceEpoch();
+    for(int i = 0; i < m_tableData.size(); i++) {
+        int diff = actualTime - m_tableData[i].epochTime;
+        if(diff > day*7) {
+            for(int j = 0; j < m_headersName->size(); j++) {
+                m_table->item(i, j)->setBackgroundColor(QColor(255, 50, 70));
+            }
+        } else if(diff > day*5) {
+            for(int j = 0; j < m_headersName->size(); j++) {
+                m_table->item(i, j)->setBackgroundColor(QColor(255,165,0));
+            }
+        } else if(diff > day*3) {
+            for(int j = 0; j < m_headersName->size(); j++) {
+                m_table->item(i, j)->setBackgroundColor(QColor(Qt::yellow));
+            }
+        }
+    }
 }
