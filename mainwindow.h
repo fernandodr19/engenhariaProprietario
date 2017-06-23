@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QScrollArea>
+#include <QMap>
 
 struct EngProp {
     QString obra;
@@ -17,14 +18,16 @@ struct EngProp {
     int epochTime;
 };
 
-enum Filter {
-    Filter_Actual,
-    Filter_Historic,
+struct Path {
+    QMap<QString, Path> m_children;
+    QString name;
+    bool isChecked;
 };
 
 class QComboBox;
 class QTableWidget;
 class QTabWidget;
+class QPushButton;
 
 class MainWindow : public QScrollArea
 {
@@ -48,19 +51,28 @@ private:
     void populateTable();
     QStringList getEventos();
     void invertData();
+    void getPathMap();
+    void openMenu();
 
     QString m_path;
 
+    QPushButton *m_settings;
     QComboBox *m_orderBy;
     QComboBox *m_filterCategory;
     QTableWidget *m_table;
 
+    //FILTERS
     bool m_crescent;//crescente ou decrescente
     bool m_historicFilter; //historico/atual
     bool m_releasedFilter;
     bool m_approvedFilter;
     bool m_approvedWithCommentsFilter;
     bool m_reprovedFilter;
+    QStringList m_desirableWords;
+    QStringList m_undesirableWords;
+    QMap<QString, QStringList> m_pathMap;
+    QStringList *m_headersName;
+    QVector<bool> m_showColumns;
 
     QVector<EngProp> m_tableData;
     QVector<EngProp> m_database;

@@ -19,6 +19,10 @@
 #include <QSettings>
 #include <QGroupBox>
 #include <QIcon>
+#include <QTextEdit>
+#include <QTreeWidget>
+#include <QMapIterator>
+#include <QPushButton>
 
 #include <QDebug>
 
@@ -30,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     setWidgetResizable(true);
     setFrameShape(QFrame::NoFrame);
     setWindowTitle("Consulta EP");
-    setWindowIcon(QIcon("icons/logo32.ico"));
+    setWindowIcon(QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\logo32.ico"));
 
     QWidget *proxyWidget = new QWidget;
     setWidget(proxyWidget);
@@ -42,6 +46,13 @@ MainWindow::MainWindow(QWidget *parent)
     verticalLayout->addLayout(gridLayout);
 
     m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";
+
+    m_settings = new QPushButton();
+    m_settings->setIcon(QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\settings.ico"));
+    m_settings->setStyleSheet("border: none");
+    connect(m_settings, &QPushButton::clicked, [this]() {
+        openMenu();
+    });
 
     m_orderBy = new QComboBox();
     m_orderBy->addItem("Mais antigo");
@@ -68,11 +79,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_table = new QTableWidget(0, 10);
     m_table->setHorizontalHeaderLabels({"Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+    m_table->horizontalHeader()->setSectionsMovable(true);
     connect(m_table->horizontalHeader(), &QHeaderView::sectionDoubleClicked, [this](int index) { applyFilter(index); });
 
     int row = 0;
     int col = 0;
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
+    gridLayout->addWidget(m_settings, row, col++);
     gridLayout->addWidget(new QLabel("Listar"), row, col++);
     gridLayout->addWidget(m_filterCategory, row, col++);
     gridLayout->addWidget(new QLabel("Ordenar por :"), row, col++);
@@ -81,7 +94,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     load();
     loadData();
-    populateTable();
+    //    populateTable();
+    getPathMap();
 }
 
 MainWindow::~MainWindow()
@@ -96,6 +110,11 @@ void MainWindow::load()
     m_approvedFilter = false;
     m_approvedWithCommentsFilter = false;
     m_reprovedFilter = false;
+    m_headersName = new QStringList({"Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+//    m_showColumns = new QVector<bool>();
+    for(int i = 0; i < m_headersName->size(); i++)
+        m_showColumns.push_back(true);
+
 }
 
 void MainWindow::save()
@@ -254,25 +273,38 @@ void MainWindow::populateTable()
 {
     m_table->clearContents();
     m_table->setRowCount(0);
+
     for(int i = 0; i < m_tableData.size(); i++) {
         EngProp engProp = m_tableData[i];
         m_table->insertRow(i);
-        m_table->setItem(i, 0, new QTableWidgetItem(engProp.obra));
-        m_table->setItem(i, 1, new QTableWidgetItem(engProp.evento));
-        m_table->setItem(i, 2, new QTableWidgetItem(engProp.tipo));
-        m_table->setItem(i, 3, new QTableWidgetItem(engProp.nome));
-        m_table->setItem(i, 4, new QTableWidgetItem(engProp.usuario));
-        m_table->setItem(i, 5, new QTableWidgetItem(engProp.empresa));
-        m_table->setItem(i, 6, new QTableWidgetItem(engProp.hora));
-        m_table->setItem(i, 7, new QTableWidgetItem(engProp.caminho));
-        m_table->setItem(i, 8, new QTableWidgetItem(engProp.arquivo));
-        m_table->setItem(i, 9, new QTableWidgetItem(engProp.data));
+        int col = -1;
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.obra));
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.evento));
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.tipo));
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.nome));
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.usuario));
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.empresa));
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.hora));
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.caminho));
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.arquivo));
+        if(m_showColumns[++col])
+            m_table->setItem(i, col, new QTableWidgetItem(engProp.data));
     }
     m_table->resizeColumnsToContents();
 }
 
 void MainWindow::applyFilter(int index)
 {
+    m_table->clearFocus();
     if(index == 1) {
         QDialog dialog;
         dialog.setWindowTitle("Filtros");
@@ -318,6 +350,47 @@ void MainWindow::applyFilter(int index)
 
         reloadTable();
     }
+
+    if(index == 7) {
+        QDialog dialog;
+        dialog.setWindowTitle("Filtros");
+        dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+        dialog.setMinimumWidth(800);
+
+        QFormLayout* formLayout = new QFormLayout();
+        dialog.setLayout(formLayout);
+
+        //        QLabel *desirableWordsLabel = new QLabel("Palavras desejáveis:");
+        //        QTextEdit *desirableWords = new QTextEdit();
+        //        formLayout->addRow(new QLabel("Palavras desejáveis:"), desirableWords);
+
+        //        QTextEdit *undesirableWords = new QTextEdit();
+        //        formLayout->addRow(new QLabel("Palavras indesejáveis:"), undesirableWords);
+
+        getPathMap();
+
+        QTreeWidget *treeWidget = new QTreeWidget();
+        treeWidget->setColumnCount(1);
+        QList<QTreeWidgetItem *> items;
+        for (int i = 0; i < 10; ++i) {
+            QTreeWidgetItem *item = new QTreeWidgetItem((QTreeWidget*)0, QStringList(QString("item: %1").arg(i)));
+            item->setFlags(item->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
+            item->setCheckState(0, Qt::Checked);
+            items.append(item);
+        }
+        treeWidget->insertTopLevelItems(0, items);
+        treeWidget->itemAt(0, 0)->addChild(new QTreeWidgetItem((QTreeWidget*)0, QStringList(QString("item: %1").arg(90))));
+
+        formLayout->addRow(treeWidget);
+
+        QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
+        formLayout->addRow(buttonBox);
+        connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
+        connect(buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
+
+        if(dialog.exec() != QDialog::Accepted)
+            return;
+    }
 }
 
 void MainWindow::invertData()
@@ -330,5 +403,80 @@ void MainWindow::invertData()
     for(EngProp engProp : clone)
         m_tableData.push_back(engProp);
 
+    populateTable();
+}
+
+void MainWindow::getPathMap()
+{
+    QMap<QString, Path> root;
+    for(EngProp engProp : m_database) {
+
+        QString caminho = engProp.caminho;//"\\Lote 08\\LT\\Trecho 1 - LT Rio das Éguas - Barreiras II C2\\02 - Topografia\\Planta Cadastral de Propriedades";
+        qDebug() << caminho;
+        QStringList fields = caminho.split("\\");
+
+        fields.removeOne("");
+        for(int i = 0; i < fields.size() - 1; i++) {
+            QString actual = fields[i];
+            QString next = fields[i+1];
+            root[actual].m_children[next];//.name = next;
+        }
+    }
+    //    root["Lote 8"].m_children["LT"];
+    //    root["LT"].m_children["blabla"];
+    //    root["blablabla"].m_children["kitkat"];
+
+    //    root["Lote 9"].m_children["LT"];
+
+    QMapIterator<QString, Path> i(root);
+    while(i.hasNext()) {
+        i.next();
+        qDebug() << i.key();// << ": " << i.value().name;
+    }
+
+
+
+
+}
+
+void MainWindow::openMenu()
+{
+    QDialog dialog;
+    dialog.setWindowTitle("Menu");
+    dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+    QFormLayout* formLayout = new QFormLayout();
+    dialog.setLayout(formLayout);
+
+    formLayout->addRow(new QLabel("Exibir colunas:"));
+
+    QVBoxLayout *vBox = new QVBoxLayout;
+
+    QVector<QCheckBox*> checkBoxes;
+    for(int i = 0; i < m_headersName->size(); i++) {
+        QCheckBox  *checkBox = new QCheckBox (m_headersName->at(i));
+        checkBox->setChecked(m_showColumns[i]);
+        vBox->addWidget(checkBox);
+        checkBoxes.push_back(checkBox);
+    }
+
+    QGroupBox *groupBox = new QGroupBox();
+    groupBox->setLayout(vBox);
+
+    formLayout->addRow(groupBox);
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
+    formLayout->addRow(buttonBox);
+    connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
+    connect(buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
+
+    if(dialog.exec() != QDialog::Accepted)
+        return;
+
+    for(int i = 0; i < m_showColumns.size(); i++) {
+        bool show = checkBoxes[i]->isChecked();
+        m_showColumns[i] = show;
+        m_table->setColumnHidden(i, !show);
+    }
     populateTable();
 }
