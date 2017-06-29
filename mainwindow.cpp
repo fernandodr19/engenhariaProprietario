@@ -23,6 +23,8 @@
 #include <QTreeWidget>
 #include <QMapIterator>
 #include <QPushButton>
+#include <QSettings>
+#include <QApplication>
 
 #include <QDebug>
 
@@ -47,10 +49,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";
 
-    m_settings = new QPushButton();
-    m_settings->setIcon(QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\settings.ico"));
-    m_settings->setStyleSheet("border: none");
-    connect(m_settings, &QPushButton::clicked, [this]() {
+    m_config = new QPushButton();
+    m_config->setIcon(QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\settings.ico"));
+    m_config->setStyleSheet("border: none");
+    connect(m_config, &QPushButton::clicked, [this]() {
         openMenu();
     });
 
@@ -84,14 +86,16 @@ MainWindow::MainWindow(QWidget *parent)
     int row = 0;
     int col = 0;
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
-    gridLayout->addWidget(m_settings, row, col++);
+    gridLayout->addWidget(m_config, row, col++);
     gridLayout->addWidget(new QLabel("Listar"), row, col++);
     gridLayout->addWidget(m_filterCategory, row, col++);
     gridLayout->addWidget(new QLabel("Ordenar por :"), row, col++);
     gridLayout->addWidget(m_orderBy, row++, col++);
     gridLayout->addWidget(m_table, row++, 0, 1, col);
 
-    load();
+    m_settingsFile = QApplication::applicationDirPath().left(1) + "\\settings.ini";
+
+    loadFilters();
     loadData();
     populateTable();
 }
@@ -101,23 +105,63 @@ MainWindow::~MainWindow()
     save();
 }
 
-void MainWindow::load()
+void MainWindow::loadFilters()
 {
-    m_historicFilter = false;
-    m_releasedFilter = true;
-    m_approvedFilter = false;
-    m_approvedWithCommentsFilter = false;
-    m_reprovedFilter = false;
+    QSettings settings(m_settingsFile, QSettings::IniFormat);
+
+    m_historicFilter = settings.value("historicFilter", false).toBool();
+    m_releasedFilter = settings.value("releasedFilter", true).toBool();
+    m_approvedFilter = settings.value("approvedFilter", false).toBool();
+    m_approvedWithCommentsFilter = settings.value("approvedWithCommentsFilter", false).toBool();
+    m_reprovedFilter = settings.value("reprovedFilter", false).toBool();
+
     m_headersName = new QStringList({"Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
-    //    m_showColumns = new QVector<bool>();
-    for(int i = 0; i < m_headersName->size(); i++)
-        m_showColumns.push_back(true);
-//    m_undesirablePaths = new QStringList();
+
+    int size = settings.beginReadArray("showColumns");
+    for (int i = 0; i < size; ++i) {
+        settings.setArrayIndex(i);
+        bool show = settings.value("showColumn", true).toBool();
+        m_showColumns.push_back(show);
+    }
+    settings.endArray();
+
+    if(m_showColumns.size() != m_headersName->size()) {
+        for(int i = 0; i < m_headersName->size(); i++)
+            m_showColumns.push_back(true);
+    }
+
+    size = settings.beginReadArray("undesirablePaths");
+    for (int i = 0; i < size; ++i) {
+        settings.setArrayIndex(i);
+        QString path = settings.value("undesirablePath").toString();
+        m_undesirablePaths.push_back(path);
+    }
+    settings.endArray();
 }
 
 void MainWindow::save()
 {
-    qDebug() << "saved";
+    QSettings settings(m_settingsFile, QSettings::IniFormat);
+
+    settings.setValue("historicFilter", m_historicFilter);
+    settings.setValue("releasedFilter", m_releasedFilter);
+    settings.setValue("approvedFilter", m_approvedFilter);
+    settings.setValue("approvedWithCommentsFilter", m_approvedWithCommentsFilter);
+    settings.setValue("reprovedFilter", m_reprovedFilter);
+
+    settings.beginWriteArray("showColumns");
+    for(int i = 0; i < m_showColumns.size(); ++i) {
+        settings.setArrayIndex(i);
+        settings.setValue("showColumn", m_showColumns[i]);
+    }
+    settings.endArray();
+
+    settings.beginWriteArray("undesirablePaths");
+    for(int i = 0; i < m_undesirablePaths.size(); ++i) {
+        settings.setArrayIndex(i);
+        settings.setValue("undesirablePath", m_undesirablePaths[i]);
+    }
+    settings.endArray();
 }
 
 void MainWindow::loadData()
@@ -312,15 +356,18 @@ void MainWindow::paintRow(int epochTime, int row)
 
     if(diff > day*7) {
         for(int col = 0; col < m_headersName->size(); col++) {
-            m_table->item(row, col)->setBackgroundColor(QColor(255, 50, 70));
+            if(m_showColumns[col])
+                m_table->item(row, col)->setBackgroundColor(QColor(255, 50, 70));
         }
     } else if(diff > day*5) {
         for(int col = 0; col < m_headersName->size(); col++) {
-            m_table->item(row, col)->setBackgroundColor(QColor(255,165,0));
+            if(m_showColumns[col])
+                m_table->item(row, col)->setBackgroundColor(QColor(255,165,0));
         }
     } else if(diff > day*3) {
         for(int col = 0; col < m_headersName->size(); col++) {
-            m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
+            if(m_showColumns[col])
+                m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
         }
     }
 }

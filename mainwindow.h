@@ -24,6 +24,7 @@ class QTabWidget;
 class QPushButton;
 class QTreeWidget;
 class QTreeWidgetItem;
+class QSettings;
 
 class MainWindow : public QScrollArea
 {
@@ -36,7 +37,7 @@ private slots:
     void applyFilter(int index);
 
 private:
-    void load();
+    void loadFilters();
     void save();
     void loadData();
     QStringList getFiles();
@@ -61,7 +62,7 @@ private:
 
     QString m_path;
 
-    QPushButton *m_settings;
+    QPushButton *m_config;
     QComboBox *m_orderBy;
     QComboBox *m_filterCategory;
     QTableWidget *m_table;
@@ -81,6 +82,8 @@ private:
 
     QVector<EngProp> m_tableData;
     QVector<EngProp> m_database;
+    QSettings *m_settings;
+    QString m_settingsFile;
 };
 
 #endif // MAINWINDOW_H
