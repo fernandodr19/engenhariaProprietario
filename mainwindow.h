@@ -49,8 +49,12 @@ private:
     void invertData();
     QTreeWidget* getTree();
     void openMenu();
-    void paintTable();
-//    void visitTree(QStringList &list, QTreeWidgetItem *item);
+    void paintRow(int epochTime, int row);
+    void visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *item);
+    void visitTree(QTreeWidget *tree);
+    void updateUndesirabelPaths(QVector<QTreeWidgetItem*> items);
+    bool isUndesirablePath(QString path);
+    QString getPath(QTreeWidgetItem *item);
 
     QString m_path;
 
@@ -66,8 +70,8 @@ private:
     bool m_approvedFilter;
     bool m_approvedWithCommentsFilter;
     bool m_reprovedFilter;
-    QStringList m_desirableWords;
-    QStringList m_undesirableWords;
+//    QStringList m_desirableWords;
+    QStringList m_undesirablePaths;
     QMap<QString, QStringList> m_pathMap;
     QStringList *m_headersName;
     QVector<bool> m_showColumns;

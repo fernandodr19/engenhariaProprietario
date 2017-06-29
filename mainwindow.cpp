@@ -272,33 +272,59 @@ void MainWindow::populateTable()
     m_table->clearContents();
     m_table->setRowCount(0);
 
-    for(int i = 0; i < m_tableData.size(); i++) {
-        EngProp engProp = m_tableData[i];
-        m_table->insertRow(i);
-        int col = -1;
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.obra));
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.evento));
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.tipo));
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.nome));
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.usuario));
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.empresa));
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.hora));
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.caminho));
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.arquivo));
-        if(m_showColumns[++col])
-            m_table->setItem(i, col, new QTableWidgetItem(engProp.data));
+    int row = 0;
+    for(EngProp engProp : m_tableData) {
+        QString path = engProp.caminho;
+        if(!isUndesirablePath(path)) {
+            m_table->insertRow(row);
+            int col = -1;
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.obra));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.evento));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.tipo));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.nome));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.usuario));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.empresa));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.hora));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.caminho));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.arquivo));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(engProp.data));
+            paintRow(engProp.epochTime, row);
+            row++;
+        }
     }
     m_table->resizeColumnsToContents();
-    paintTable();
+//    paintTable();
+}
+
+void MainWindow::paintRow(int epochTime, int row)
+{
+    int day = 86400;//secs
+    int actualTime = QDateTime::currentSecsSinceEpoch();
+    int diff = actualTime - epochTime;
+
+    if(diff > day*7) {
+        for(int col = 0; col < m_headersName->size(); col++) {
+            m_table->item(row, col)->setBackgroundColor(QColor(255, 50, 70));
+        }
+    } else if(diff > day*5) {
+        for(int col = 0; col < m_headersName->size(); col++) {
+            m_table->item(row, col)->setBackgroundColor(QColor(255,165,0));
+        }
+    } else if(diff > day*3) {
+        for(int col = 0; col < m_headersName->size(); col++) {
+            m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
+        }
+    }
 }
 
 void MainWindow::applyFilter(int index)
@@ -370,11 +396,7 @@ void MainWindow::applyFilter(int index)
         if(dialog.exec() != QDialog::Accepted)
             return;
 
-        //http://www.qtcentre.org/threads/31578-List-all-elements-of-a-QTreeWidget-from-top-to-bottom
-        //        for(int i = 0; i < treeWidget->topLevelItemCount(); i++) {
-        //            for()
-        //        }
-
+        visitTree(treeWidget);
     }
 }
 
@@ -494,24 +516,47 @@ void MainWindow::openMenu()
     populateTable();
 }
 
-void MainWindow::paintTable()
-{
-    int day = 86400;//secs
-    int actualTime = QDateTime::currentSecsSinceEpoch();
-    for(int i = 0; i < m_tableData.size(); i++) {
-        int diff = actualTime - m_tableData[i].epochTime;
-        if(diff > day*7) {
-            for(int j = 0; j < m_headersName->size(); j++) {
-                m_table->item(i, j)->setBackgroundColor(QColor(255, 50, 70));
-            }
-        } else if(diff > day*5) {
-            for(int j = 0; j < m_headersName->size(); j++) {
-                m_table->item(i, j)->setBackgroundColor(QColor(255,165,0));
-            }
-        } else if(diff > day*3) {
-            for(int j = 0; j < m_headersName->size(); j++) {
-                m_table->item(i, j)->setBackgroundColor(QColor(Qt::yellow));
-            }
-        }
+void MainWindow::visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *item){
+    if(item->checkState(0) == Qt::Unchecked)
+        list.push_back(item);
+    for(int i=0;i<item->childCount(); ++i) {
+        visitTree(list, item->child(i));
     }
+}
+
+void MainWindow::visitTree(QTreeWidget *tree) {
+    QVector<QTreeWidgetItem*> uncheckdItems;
+    for(int i=0;i<tree->topLevelItemCount();++i)
+        visitTree(uncheckdItems, tree->topLevelItem(i));
+    updateUndesirabelPaths(uncheckdItems);
+}
+
+void MainWindow::updateUndesirabelPaths(QVector<QTreeWidgetItem *> items)
+{
+    QString path;
+    m_undesirablePaths.clear();
+    for(QTreeWidgetItem* item : items) {
+        path = getPath(item);
+        m_undesirablePaths.push_back(path);
+    }
+
+    populateTable();
+}
+
+bool MainWindow::isUndesirablePath(QString path)
+{
+    for(QString undesirablePath : m_undesirablePaths)
+        if(path.contains(undesirablePath))
+            return true;
+    return false;
+}
+
+QString MainWindow::getPath(QTreeWidgetItem *item)
+{
+    QString path;
+    while(item != nullptr) {
+        path = "\\" + item->text(0) + path;
+        item = item->parent();
+    }
+    return path;
 }
