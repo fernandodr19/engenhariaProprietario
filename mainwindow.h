@@ -53,8 +53,11 @@ private:
     void visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *item);
     void visitTree(QTreeWidget *tree);
     void updateUndesirabelPaths(QVector<QTreeWidgetItem*> items);
+    bool containsUndesirablePath(QString path);
     bool isUndesirablePath(QString path);
     QString getPath(QTreeWidgetItem *item);
+    Qt::CheckState getCheckState(QTreeWidgetItem *item);
+    void setEnabled(QTreeWidgetItem *item);
 
     QString m_path;
 

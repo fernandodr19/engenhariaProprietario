@@ -93,7 +93,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     load();
     loadData();
-    //    populateTable();
+    populateTable();
 }
 
 MainWindow::~MainWindow()
@@ -112,7 +112,7 @@ void MainWindow::load()
     //    m_showColumns = new QVector<bool>();
     for(int i = 0; i < m_headersName->size(); i++)
         m_showColumns.push_back(true);
-
+//    m_undesirablePaths = new QStringList();
 }
 
 void MainWindow::save()
@@ -238,8 +238,6 @@ void MainWindow::reloadTableData()
         if(eventos.contains(evento))
             m_tableData.push_back(engProp);
     }
-
-    populateTable();
 }
 
 QStringList MainWindow::getEventos()
@@ -274,36 +272,36 @@ void MainWindow::populateTable()
 
     int row = 0;
     for(EngProp engProp : m_tableData) {
-        QString path = engProp.caminho;
-        if(!isUndesirablePath(path)) {
-            m_table->insertRow(row);
-            int col = -1;
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.obra));
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.evento));
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.tipo));
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.nome));
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.usuario));
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.empresa));
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.hora));
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.caminho));
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.arquivo));
-            if(m_showColumns[++col])
-                m_table->setItem(row, col, new QTableWidgetItem(engProp.data));
-            paintRow(engProp.epochTime, row);
-            row++;
-        }
+        if(containsUndesirablePath(engProp.caminho))
+            continue;
+
+        m_table->insertRow(row);
+        int col = -1;
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.obra));
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.evento));
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.tipo));
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.nome));
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.usuario));
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.empresa));
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.hora));
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.caminho));
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.arquivo));
+        if(m_showColumns[++col])
+            m_table->setItem(row, col, new QTableWidgetItem(engProp.data));
+        paintRow(engProp.epochTime, row);
+        row++;
+
     }
     m_table->resizeColumnsToContents();
-//    paintTable();
 }
 
 void MainWindow::paintRow(int epochTime, int row)
@@ -416,6 +414,12 @@ void MainWindow::invertData()
 QTreeWidget* MainWindow::getTree()
 {
     QTreeWidget *treeWidget = new QTreeWidget();
+    connect(treeWidget, &QTreeWidget::itemClicked, [this](QTreeWidgetItem *item){
+        for (int i = 0; i < item->childCount(); ++i) {
+            setEnabled(item->child(i));
+        }
+
+    });
     QTreeWidgetItem *topLevelItem;
 
     QStringList singlePaths;
@@ -437,8 +441,9 @@ QTreeWidget* MainWindow::getTree()
         if (treeWidget->findItems(tokens[0], Qt::MatchFixedString).isEmpty()) {
             topLevelItem = new QTreeWidgetItem;
             topLevelItem->setFlags(topLevelItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
-            topLevelItem->setCheckState(0, Qt::Checked);
             topLevelItem->setText(0, tokens[0]);
+            topLevelItem->setCheckState(0, getCheckState(topLevelItem));
+//            setEnabled(topLevelItem);
             topLevelItem->setIcon(0, QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\file.png"));
             treeWidget->addTopLevelItem(topLevelItem);
         }
@@ -460,16 +465,18 @@ QTreeWidget* MainWindow::getTree()
             if (!thisDirectoryExists) {
                 parentItem = new QTreeWidgetItem(parentItem);
                 parentItem->setFlags(parentItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
-                parentItem->setCheckState(0, Qt::Checked);
                 parentItem->setText(0, tokens[i]);
+                parentItem->setCheckState(0, getCheckState(parentItem));
+                setEnabled(parentItem);
                 parentItem->setIcon(0, QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\file.png"));
             }
         }
 
         QTreeWidgetItem *childItem = new QTreeWidgetItem(parentItem);
         childItem->setFlags(childItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
-        childItem->setCheckState(0, Qt::Checked);
         childItem->setText(0, tokens.last());
+        childItem->setCheckState(0, getCheckState(childItem));
+
     }
     return treeWidget;
 }
@@ -543,10 +550,18 @@ void MainWindow::updateUndesirabelPaths(QVector<QTreeWidgetItem *> items)
     populateTable();
 }
 
-bool MainWindow::isUndesirablePath(QString path)
+bool MainWindow::containsUndesirablePath(QString path)
 {
     for(QString undesirablePath : m_undesirablePaths)
         if(path.contains(undesirablePath))
+            return true;
+    return false;
+}
+
+bool MainWindow::isUndesirablePath(QString path)
+{
+    for(QString undesirablePath : m_undesirablePaths)
+        if(path == undesirablePath)
             return true;
     return false;
 }
@@ -559,4 +574,23 @@ QString MainWindow::getPath(QTreeWidgetItem *item)
         item = item->parent();
     }
     return path;
+}
+
+Qt::CheckState MainWindow::getCheckState(QTreeWidgetItem *item)
+{
+    if(isUndesirablePath(getPath(item)))
+        return Qt::Unchecked;
+    return Qt::Checked;
+}
+
+void MainWindow::setEnabled(QTreeWidgetItem *item)
+{
+    QTreeWidgetItem *parent = item->parent();
+    if(parent == nullptr)
+        return;
+
+    if(parent->checkState(0) == Qt::Unchecked)
+        item->setFlags(item->flags() &= ~Qt::ItemIsEnabled);
+    else
+        item->setFlags(item->flags() | Qt::ItemIsEnabled);
 }
