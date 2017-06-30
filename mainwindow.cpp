@@ -59,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     m_clearFilters = new QPushButton("Limpar filtros");
-    connect(m_clearFilters, &QPushButton::clicked, [this]() {
+    connect(m_clearFilters, &QPushButton::clicked, [this](bool) {
         clearFilters();
     });
 
@@ -301,7 +301,7 @@ int MainWindow::getEpochTime(QString date, QString time)
     int second = splitedTime[2].toInt();
 
     QDateTime dateTime(QDate(year, month, day), QTime(hour, minute, second));
-    return dateTime.toSecsSinceEpoch();
+    return dateTime.toMSecsSinceEpoch();
 }
 
 void MainWindow::reloadTableData()
@@ -406,8 +406,8 @@ void MainWindow::populateTable()
 
 void MainWindow::paintRow(int epochTime, int row)
 {
-    int day = 86400;//secs
-    int actualTime = QDateTime::currentSecsSinceEpoch();
+    int day = 86400000;//msecs
+    int actualTime = QDateTime::currentMSecsSinceEpoch();
     int diff = actualTime - epochTime;
 
     if(diff > day*7) {

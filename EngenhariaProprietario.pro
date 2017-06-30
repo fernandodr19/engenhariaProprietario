@@ -5,6 +5,7 @@
 #-------------------------------------------------
 
 QT       += core gui
+CONFIG += c++14
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -22,7 +23,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-Release:DESTDIR = ../../../../release
+Release:DESTDIR = ../../release
 
 SOURCES += \
         main.cpp \
@@ -30,3 +31,5 @@ SOURCES += \
 
 HEADERS += \
         mainwindow.h
+
+win32:RC_FILE = resources.rc
