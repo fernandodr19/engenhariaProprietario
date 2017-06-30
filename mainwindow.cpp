@@ -28,6 +28,8 @@
 
 #include <QDebug>
 
+QSettings *g_settings = nullptr;
+
 MainWindow::MainWindow(QWidget *parent)
     : QScrollArea(parent)
 {
@@ -36,7 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
     setWidgetResizable(true);
     setFrameShape(QFrame::NoFrame);
     setWindowTitle("Consulta EP");
-    setWindowIcon(QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\logo32.ico"));
+    setWindowIcon(QIcon("icons\\logo32.ico"));
 
     QWidget *proxyWidget = new QWidget;
     setWidget(proxyWidget);
@@ -50,7 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";
 
     m_config = new QPushButton();
-    m_config->setIcon(QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\settings.ico"));
+    m_config->setIcon(QIcon("icons\\settings.ico"));
     m_config->setStyleSheet("border: none");
     connect(m_config, &QPushButton::clicked, [this]() {
         openMenu();
@@ -105,7 +107,13 @@ MainWindow::MainWindow(QWidget *parent)
     gridLayout->addWidget(m_orderBy, row++, col++);
     gridLayout->addWidget(m_table, row++, 0, 1, col);
 
-    m_settingsFile = QApplication::applicationDirPath().left(1) + "\\settings.ini";
+
+    QCoreApplication::setOrganizationName("Fluxo Engenharia");
+    QCoreApplication::setOrganizationDomain("fluxoengenharia.com.br");
+    QCoreApplication::setApplicationVersion("1.0.0");
+    QCoreApplication::setApplicationName("Controle EP");
+
+    g_settings = new QSettings(QSettings::IniFormat, QSettings::UserScope, QApplication::organizationName(), QApplication::applicationName());
 
     loadFilters();
     loadData();
@@ -115,27 +123,26 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     save();
+    delete g_settings;
 }
 
 void MainWindow::loadFilters()
 {
-    QSettings settings(m_settingsFile, QSettings::IniFormat);
-
-    m_historicFilter = settings.value("historicFilter", false).toBool();
-    m_releasedFilter = settings.value("releasedFilter", true).toBool();
-    m_approvedFilter = settings.value("approvedFilter", false).toBool();
-    m_approvedWithCommentsFilter = settings.value("approvedWithCommentsFilter", false).toBool();
-    m_reprovedFilter = settings.value("reprovedFilter", false).toBool();
+    m_historicFilter = g_settings->value("historicFilter", false).toBool();
+    m_releasedFilter = g_settings->value("releasedFilter", true).toBool();
+    m_approvedFilter = g_settings->value("approvedFilter", false).toBool();
+    m_approvedWithCommentsFilter = g_settings->value("approvedWithCommentsFilter", false).toBool();
+    m_reprovedFilter = g_settings->value("reprovedFilter", false).toBool();
 
     m_headersName = new QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
 
-    int size = settings.beginReadArray("showColumns");
+    int size = g_settings->beginReadArray("showColumns");
     for (int i = 0; i < size; ++i) {
-        settings.setArrayIndex(i);
-        bool show = settings.value("showColumn", true).toBool();
+        g_settings->setArrayIndex(i);
+        bool show = g_settings->value("showColumn", true).toBool();
         m_showColumns.push_back(show);
     }
-    settings.endArray();
+    g_settings->endArray();
 
     if(m_showColumns.size() != m_headersName->size()) {
         m_showColumns.clear();
@@ -143,13 +150,13 @@ void MainWindow::loadFilters()
             m_showColumns.push_back(true);
     }
 
-    size = settings.beginReadArray("headersOrder");
+    size = g_settings->beginReadArray("headersOrder");
     for (int i = 0; i < size; ++i) {
-        settings.setArrayIndex(i);
-        QString header = settings.value("headerOrder", i).toString();
+        g_settings->setArrayIndex(i);
+        QString header = g_settings->value("headerOrder", i).toString();
         m_headersOrder.push_back(header);
     }
-    settings.endArray();
+    g_settings->endArray();
 
     if(m_headersOrder.size() != m_headersName->size()) {
         m_headersOrder.clear();
@@ -157,45 +164,43 @@ void MainWindow::loadFilters()
             m_headersOrder.push_back(m_headersName->at(i));
     }
 
-    size = settings.beginReadArray("undesirablePaths");
+    size = g_settings->beginReadArray("undesirablePaths");
     for (int i = 0; i < size; ++i) {
-        settings.setArrayIndex(i);
-        QString path = settings.value("undesirablePath").toString();
+        g_settings->setArrayIndex(i);
+        QString path = g_settings->value("undesirablePath").toString();
         m_undesirablePaths.push_back(path);
     }
-    settings.endArray();
+    g_settings->endArray();
 }
 
 void MainWindow::save()
 {
-    QSettings settings(m_settingsFile, QSettings::IniFormat);
+    g_settings->setValue("historicFilter", m_historicFilter);
+    g_settings->setValue("releasedFilter", m_releasedFilter);
+    g_settings->setValue("approvedFilter", m_approvedFilter);
+    g_settings->setValue("approvedWithCommentsFilter", m_approvedWithCommentsFilter);
+    g_settings->setValue("reprovedFilter", m_reprovedFilter);
 
-    settings.setValue("historicFilter", m_historicFilter);
-    settings.setValue("releasedFilter", m_releasedFilter);
-    settings.setValue("approvedFilter", m_approvedFilter);
-    settings.setValue("approvedWithCommentsFilter", m_approvedWithCommentsFilter);
-    settings.setValue("reprovedFilter", m_reprovedFilter);
-
-    settings.beginWriteArray("showColumns");
+    g_settings->beginWriteArray("showColumns");
     for(int i = 0; i < m_showColumns.size(); ++i) {
-        settings.setArrayIndex(i);
-        settings.setValue("showColumn", m_showColumns[i]);
+        g_settings->setArrayIndex(i);
+        g_settings->setValue("showColumn", m_showColumns[i]);
     }
-    settings.endArray();
+    g_settings->endArray();
 
-    settings.beginWriteArray("headersOrder");
+    g_settings->beginWriteArray("headersOrder");
     for(int i = 0; i < m_headersOrder.size(); ++i) {
-        settings.setArrayIndex(i);
-        settings.setValue("headerOrder", m_headersOrder[i]);
+        g_settings->setArrayIndex(i);
+        g_settings->setValue("headerOrder", m_headersOrder[i]);
     }
-    settings.endArray();
+    g_settings->endArray();
 
-    settings.beginWriteArray("undesirablePaths");
+    g_settings->beginWriteArray("undesirablePaths");
     for(int i = 0; i < m_undesirablePaths.size(); ++i) {
-        settings.setArrayIndex(i);
-        settings.setValue("undesirablePath", m_undesirablePaths[i]);
+        g_settings->setArrayIndex(i);
+        g_settings->setValue("undesirablePath", m_undesirablePaths[i]);
     }
-    settings.endArray();
+    g_settings->endArray();
 }
 
 void MainWindow::loadData()
@@ -566,7 +571,7 @@ QTreeWidget* MainWindow::getTree()
             topLevelItem->setText(0, tokens[0]);
             topLevelItem->setCheckState(0, getCheckState(topLevelItem));
 //            setEnabled(topLevelItem);
-            topLevelItem->setIcon(0, QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\file.png"));
+            topLevelItem->setIcon(0, QIcon("icons\\file.png"));
             treeWidget->addTopLevelItem(topLevelItem);
         }
 
@@ -590,7 +595,7 @@ QTreeWidget* MainWindow::getTree()
                 parentItem->setText(0, tokens[i]);
                 parentItem->setCheckState(0, getCheckState(parentItem));
                 setEnabled(parentItem);
-                parentItem->setIcon(0, QIcon("C:\\fdr\\ep\\EngenhariaProprietario\\icons\\file.png"));
+                parentItem->setIcon(0, QIcon("icons\\file.png"));
             }
         }
 

@@ -86,8 +86,6 @@ private:
     QStringList *m_headersName;
     QVector<EngProp> m_tableData;
     QVector<EngProp> m_database;
-    QSettings *m_settings;
-    QString m_settingsFile;
 };
 
 #endif // MAINWINDOW_H
