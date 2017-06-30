@@ -35,6 +35,7 @@ public:
 
 private slots:
     void applyFilter(int index);
+    void clearFilters();
 
 private:
     void loadFilters();
@@ -42,6 +43,7 @@ private:
     void loadData();
     QStringList getFiles();
     QString getDate(QString fileName);
+    void initializeTable();
     int getEpochTime(QString date, QString time);
     void reloadTableData();
     int indexOfFile(QString key);
@@ -59,9 +61,12 @@ private:
     QString getPath(QTreeWidgetItem *item);
     Qt::CheckState getCheckState(QTreeWidgetItem *item);
     void setEnabled(QTreeWidgetItem *item);
+    void updateHeadersOrder();
+    void resetHeadersOrder();
 
     QString m_path;
 
+    QPushButton *m_clearFilters;
     QPushButton *m_config;
     QComboBox *m_orderBy;
     QComboBox *m_filterCategory;
@@ -74,12 +79,11 @@ private:
     bool m_approvedFilter;
     bool m_approvedWithCommentsFilter;
     bool m_reprovedFilter;
-//    QStringList m_desirableWords;
     QStringList m_undesirablePaths;
-    QMap<QString, QStringList> m_pathMap;
-    QStringList *m_headersName;
     QVector<bool> m_showColumns;
+    QStringList m_headersOrder;
 
+    QStringList *m_headersName;
     QVector<EngProp> m_tableData;
     QVector<EngProp> m_database;
     QSettings *m_settings;

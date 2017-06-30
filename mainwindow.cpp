@@ -56,6 +56,11 @@ MainWindow::MainWindow(QWidget *parent)
         openMenu();
     });
 
+    m_clearFilters = new QPushButton("Limpar filtros");
+    connect(m_clearFilters, &QPushButton::clicked, [this]() {
+        clearFilters();
+    });
+
     m_orderBy = new QComboBox();
     m_orderBy->addItem("Mais antigo");
     m_orderBy->addItem("Mais recente");
@@ -76,17 +81,24 @@ MainWindow::MainWindow(QWidget *parent)
         else
             m_historicFilter = false;
         reloadTableData();
+        populateTable();
     });
 
-    m_table = new QTableWidget(0, 10);
-    m_table->setHorizontalHeaderLabels({"Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+    m_table = new QTableWidget(0, 11);
+    m_table->setHorizontalHeaderLabels({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
     m_table->horizontalHeader()->setSectionsMovable(true);
     connect(m_table->horizontalHeader(), &QHeaderView::sectionDoubleClicked, [this](int index) { applyFilter(index); });
+    connect(m_table->horizontalHeader(), &QHeaderView::sectionPressed, [this]() {
+        connect(m_table->horizontalHeader(), &QHeaderView::sectionMoved, [this](int, int from, int to) {
+            m_headersOrder.move(from, to);
+        });
+    });
 
     int row = 0;
     int col = 0;
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
+    gridLayout->addWidget(m_clearFilters, row, col++);
     gridLayout->addWidget(new QLabel("Listar"), row, col++);
     gridLayout->addWidget(m_filterCategory, row, col++);
     gridLayout->addWidget(new QLabel("Ordenar por :"), row, col++);
@@ -97,7 +109,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     loadFilters();
     loadData();
-    populateTable();
+    initializeTable();
 }
 
 MainWindow::~MainWindow()
@@ -115,7 +127,7 @@ void MainWindow::loadFilters()
     m_approvedWithCommentsFilter = settings.value("approvedWithCommentsFilter", false).toBool();
     m_reprovedFilter = settings.value("reprovedFilter", false).toBool();
 
-    m_headersName = new QStringList({"Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+    m_headersName = new QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
 
     int size = settings.beginReadArray("showColumns");
     for (int i = 0; i < size; ++i) {
@@ -126,8 +138,23 @@ void MainWindow::loadFilters()
     settings.endArray();
 
     if(m_showColumns.size() != m_headersName->size()) {
+        m_showColumns.clear();
         for(int i = 0; i < m_headersName->size(); i++)
             m_showColumns.push_back(true);
+    }
+
+    size = settings.beginReadArray("headersOrder");
+    for (int i = 0; i < size; ++i) {
+        settings.setArrayIndex(i);
+        QString header = settings.value("headerOrder", i).toString();
+        m_headersOrder.push_back(header);
+    }
+    settings.endArray();
+
+    if(m_headersOrder.size() != m_headersName->size()) {
+        m_headersOrder.clear();
+        for(int i = 0; i < m_headersName->size(); i++)
+            m_headersOrder.push_back(m_headersName->at(i));
     }
 
     size = settings.beginReadArray("undesirablePaths");
@@ -153,6 +180,13 @@ void MainWindow::save()
     for(int i = 0; i < m_showColumns.size(); ++i) {
         settings.setArrayIndex(i);
         settings.setValue("showColumn", m_showColumns[i]);
+    }
+    settings.endArray();
+
+    settings.beginWriteArray("headersOrder");
+    for(int i = 0; i < m_headersOrder.size(); ++i) {
+        settings.setArrayIndex(i);
+        settings.setValue("headerOrder", m_headersOrder[i]);
     }
     settings.endArray();
 
@@ -199,6 +233,7 @@ void MainWindow::loadData()
                     engProp.evento == "Liberado para Cliente" ||
                     engProp.evento == "Reprovado Cliente" ||
                     engProp.evento == "Aprovado Cliente c/ Ressalvas") {
+//                qDebug() << engProp.evento;//checkHere
                 m_database.push_back(engProp);
             }
         }
@@ -309,6 +344,16 @@ int MainWindow::indexOfFile(QString key)
     return -1;
 }
 
+void MainWindow::initializeTable()
+{
+    for(int i = 0; i < m_showColumns.size(); i++)
+        m_table->setColumnHidden(i, !m_showColumns[i]);
+
+    updateHeadersOrder();
+
+    populateTable();
+}
+
 void MainWindow::populateTable()
 {
     m_table->clearContents();
@@ -321,6 +366,12 @@ void MainWindow::populateTable()
 
         m_table->insertRow(row);
         int col = -1;
+        if(m_showColumns[++col]) {
+            QTableWidgetItem *item = new QTableWidgetItem(1);
+            item->data(Qt::CheckStateRole);
+            item->setCheckState(Qt::Unchecked);
+            m_table->setItem(row, col, item);
+        }
         if(m_showColumns[++col])
             m_table->setItem(row, col, new QTableWidgetItem(engProp.obra));
         if(m_showColumns[++col])
@@ -355,17 +406,17 @@ void MainWindow::paintRow(int epochTime, int row)
     int diff = actualTime - epochTime;
 
     if(diff > day*7) {
-        for(int col = 0; col < m_headersName->size(); col++) {
+        for(int col = 1; col < m_headersName->size(); col++) {
             if(m_showColumns[col])
                 m_table->item(row, col)->setBackgroundColor(QColor(255, 50, 70));
         }
     } else if(diff > day*5) {
-        for(int col = 0; col < m_headersName->size(); col++) {
+        for(int col = 1; col < m_headersName->size(); col++) {
             if(m_showColumns[col])
                 m_table->item(row, col)->setBackgroundColor(QColor(255,165,0));
         }
     } else if(diff > day*3) {
-        for(int col = 0; col < m_headersName->size(); col++) {
+        for(int col = 1; col < m_headersName->size(); col++) {
             if(m_showColumns[col])
                 m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
         }
@@ -374,8 +425,7 @@ void MainWindow::paintRow(int epochTime, int row)
 
 void MainWindow::applyFilter(int index)
 {
-    m_table->clearFocus();
-    if(index == 1) {
+    if(index == 2) {
         QDialog dialog;
         dialog.setWindowTitle("Filtros");
         dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
@@ -421,7 +471,7 @@ void MainWindow::applyFilter(int index)
         reloadTableData();
     }
 
-    if(index == 7) {
+    if(index == 8) {
         QDialog dialog;
         dialog.setWindowTitle("Filtros");
         dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
@@ -443,6 +493,31 @@ void MainWindow::applyFilter(int index)
 
         visitTree(treeWidget);
     }
+}
+
+void MainWindow::updateHeadersOrder()
+{
+    QStringList names;
+    for(int i = 0; i < m_headersName->size(); i++)
+        names.push_back(m_headersName->at(i));
+
+    for(int i = 0; i < names.size(); i++) {
+        int index = names.indexOf(m_headersOrder[i]);
+        if(index != i) {
+            m_table->horizontalHeader()->moveSection(index, i);
+            names.move(index, i);
+        }
+    }
+}
+
+void MainWindow::resetHeadersOrder()//checkHere
+{
+//    for(int i = 0; i < m_headersName->size(); i++) {
+//        int index = m_headersOrder.indexOf(m_headersName->at(i));
+//        if(index != i) {
+//            m_table->horizontalHeader()->moveSection(index, i);
+//        }
+//    }
 }
 
 void MainWindow::invertData()
@@ -567,6 +642,34 @@ void MainWindow::openMenu()
         m_showColumns[i] = show;
         m_table->setColumnHidden(i, !show);
     }
+    populateTable();
+}
+
+void MainWindow::clearFilters()
+{
+    m_historicFilter = false;
+    m_filterCategory->setCurrentIndex(0);
+
+    m_orderBy->setCurrentIndex(0);
+
+    resetHeadersOrder();
+    m_headersOrder.clear();
+    for(int i = 0; i < m_headersName->size(); i++)
+        m_headersOrder.push_back(m_headersName->at(i));
+
+    m_releasedFilter = true;
+    m_approvedFilter = false;
+    m_approvedWithCommentsFilter = false;
+    m_reprovedFilter = false;
+
+    for(int i = 0; i < m_showColumns.size(); i++) {
+        m_showColumns[i] = true;
+        m_table->setColumnHidden(i, false);
+    }
+
+    m_undesirablePaths.clear();
+
+    reloadTableData();
     populateTable();
 }
 
