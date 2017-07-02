@@ -4,18 +4,20 @@
 #include <QScrollArea>
 #include <QMap>
 
-struct EngProp {
-    QString obra;
-    QString evento;
-    QString tipo;
-    QString nome;
-    QString usuario;
-    QString empresa;
-    QString hora;
-    QString caminho;
-    QString arquivo;
-    QString data;
-    int epochTime;
+
+
+enum col {
+    col_Feito = 0,
+    col_Obra,
+    col_Evento,
+    col_Tipo,
+    col_Nome,
+    col_Usuario,
+    col_Empresa,
+    col_Hora,
+    col_Caminho,
+    col_Arquivo,
+    col_Data,
 };
 
 class QComboBox;
@@ -25,6 +27,7 @@ class QPushButton;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QSettings;
+class LogEntry;
 
 class MainWindow : public QScrollArea
 {
@@ -38,8 +41,8 @@ private slots:
     void clearFilters();
 
 private:
-    void loadFilters();
-    void save();
+    void updateFromDatabase();
+    void updateToDatabase();
     void loadData();
     QStringList getFiles();
     QString getDate(QString fileName);
@@ -49,7 +52,6 @@ private:
     int indexOfFile(QString key);
     void populateTable();
     QStringList getEventos();
-    void invertData();
     QTreeWidget* getTree();
     void openMenu();
     void paintRow(int epochTime, int row);
@@ -63,17 +65,17 @@ private:
     void setEnabled(QTreeWidgetItem *item);
     void updateHeadersOrder();
     void resetHeadersOrder();
+    void orderTableByColumn(int index);
+    void updateFromTable(int row, int col);
 
     QString m_path;
 
     QPushButton *m_clearFilters;
     QPushButton *m_config;
-    QComboBox *m_orderBy;
     QComboBox *m_filterCategory;
     QTableWidget *m_table;
 
     //FILTERS
-    bool m_crescent;//crescente ou decrescente
     bool m_historicFilter; //historico/atual
     bool m_releasedFilter;
     bool m_approvedFilter;
@@ -82,10 +84,11 @@ private:
     QStringList m_undesirablePaths;
     QVector<bool> m_showColumns;
     QStringList m_headersOrder;
+    QVector<bool> m_orderByCrescent;
 
     QStringList *m_headersName;
-    QVector<EngProp> m_tableData;
-    QVector<EngProp> m_database;
+    QVector<LogEntry> m_tableData;
+    QVector<LogEntry> m_logEntries;
 };
 
 #endif // MAINWINDOW_H

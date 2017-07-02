@@ -26,9 +26,12 @@
 #include <QSettings>
 #include <QApplication>
 
+#include "logentry.h"
+#include "database.h"
+
 #include <QDebug>
 
-QSettings *g_settings = nullptr;
+Database *g_database = new Database();
 
 MainWindow::MainWindow(QWidget *parent)
     : QScrollArea(parent)
@@ -63,17 +66,6 @@ MainWindow::MainWindow(QWidget *parent)
         clearFilters();
     });
 
-    m_orderBy = new QComboBox();
-    m_orderBy->addItem("Mais antigo");
-    m_orderBy->addItem("Mais recente");
-    connect(m_orderBy, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), [this](int index) {
-        if(index == 1)
-            m_crescent = true;
-        else
-            m_crescent = false;
-        invertData();
-    });
-
     m_filterCategory = new QComboBox();
     m_filterCategory->addItem("Operações atuais");
     m_filterCategory->addItem("Histórico de operações");
@@ -86,9 +78,16 @@ MainWindow::MainWindow(QWidget *parent)
         populateTable();
     });
 
+    m_headersName = new QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+
     m_table = new QTableWidget(0, 11);
     m_table->setHorizontalHeaderLabels({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
     m_table->horizontalHeader()->setSectionsMovable(true);
+    connect(m_table->horizontalHeader(), &QHeaderView::sectionClicked, [this](int index) {
+        orderTableByColumn(index);
+        reloadTableData();
+        populateTable();
+    });
     connect(m_table->horizontalHeader(), &QHeaderView::sectionDoubleClicked, [this](int index) { applyFilter(index); });
     connect(m_table->horizontalHeader(), &QHeaderView::sectionPressed, [this]() {
         connect(m_table->horizontalHeader(), &QHeaderView::sectionMoved, [this](int, int from, int to) {
@@ -102,47 +101,35 @@ MainWindow::MainWindow(QWidget *parent)
     gridLayout->addWidget(m_config, row, col++);
     gridLayout->addWidget(m_clearFilters, row, col++);
     gridLayout->addWidget(new QLabel("Listar"), row, col++);
-    gridLayout->addWidget(m_filterCategory, row, col++);
-    gridLayout->addWidget(new QLabel("Ordenar por :"), row, col++);
-    gridLayout->addWidget(m_orderBy, row++, col++);
+    gridLayout->addWidget(m_filterCategory, row++, col++);
     gridLayout->addWidget(m_table, row++, 0, 1, col);
 
-
-    QCoreApplication::setOrganizationName("Fluxo Engenharia");
-    QCoreApplication::setOrganizationDomain("fluxoengenharia.com.br");
-    QCoreApplication::setApplicationVersion("1.0.0");
-    QCoreApplication::setApplicationName("Controle EP");
-
-    g_settings = new QSettings(QSettings::IniFormat, QSettings::UserScope, QApplication::organizationName(), QApplication::applicationName());
-
-    loadFilters();
-    loadData();
+    updateFromDatabase();
+//    loadData();
+    reloadTableData();
     initializeTable();
 }
 
 MainWindow::~MainWindow()
 {
-    save();
-    delete g_settings;
+    updateToDatabase();
+    g_database->save();
+    delete g_database;
 }
 
-void MainWindow::loadFilters()
+void MainWindow::updateFromDatabase()
 {
-    m_historicFilter = g_settings->value("historicFilter", false).toBool();
-    m_releasedFilter = g_settings->value("releasedFilter", true).toBool();
-    m_approvedFilter = g_settings->value("approvedFilter", false).toBool();
-    m_approvedWithCommentsFilter = g_settings->value("approvedWithCommentsFilter", false).toBool();
-    m_reprovedFilter = g_settings->value("reprovedFilter", false).toBool();
+    m_historicFilter = g_database->getHistoricFilter();
+    m_releasedFilter = g_database->getReleasedFilter();
+    m_approvedFilter = g_database->getApprovedFilter();
+    m_approvedWithCommentsFilter = g_database->getApprovedWithCommentsFilter();
+    m_reprovedFilter = g_database->getReprovedFilter();
 
-    m_headersName = new QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
-
-    int size = g_settings->beginReadArray("showColumns");
-    for (int i = 0; i < size; ++i) {
-        g_settings->setArrayIndex(i);
-        bool show = g_settings->value("showColumn", true).toBool();
-        m_showColumns.push_back(show);
+    for(int i = 0; i < m_headersName->size(); i++) {
+        m_orderByCrescent.push_back(true);
     }
-    g_settings->endArray();
+
+    m_showColumns = g_database->getShowColumns();
 
     if(m_showColumns.size() != m_headersName->size()) {
         m_showColumns.clear();
@@ -150,13 +137,7 @@ void MainWindow::loadFilters()
             m_showColumns.push_back(true);
     }
 
-    size = g_settings->beginReadArray("headersOrder");
-    for (int i = 0; i < size; ++i) {
-        g_settings->setArrayIndex(i);
-        QString header = g_settings->value("headerOrder", i).toString();
-        m_headersOrder.push_back(header);
-    }
-    g_settings->endArray();
+    m_headersOrder = g_database->getHeadersOrder();
 
     if(m_headersOrder.size() != m_headersName->size()) {
         m_headersOrder.clear();
@@ -164,46 +145,25 @@ void MainWindow::loadFilters()
             m_headersOrder.push_back(m_headersName->at(i));
     }
 
-    size = g_settings->beginReadArray("undesirablePaths");
-    for (int i = 0; i < size; ++i) {
-        g_settings->setArrayIndex(i);
-        QString path = g_settings->value("undesirablePath").toString();
-        m_undesirablePaths.push_back(path);
-    }
-    g_settings->endArray();
+    m_undesirablePaths = g_database->getUndesirablePaths();
+    m_logEntries = g_database->getLogEntries();
 }
 
-void MainWindow::save()
+void MainWindow::updateToDatabase()
 {
-    g_settings->setValue("historicFilter", m_historicFilter);
-    g_settings->setValue("releasedFilter", m_releasedFilter);
-    g_settings->setValue("approvedFilter", m_approvedFilter);
-    g_settings->setValue("approvedWithCommentsFilter", m_approvedWithCommentsFilter);
-    g_settings->setValue("reprovedFilter", m_reprovedFilter);
-
-    g_settings->beginWriteArray("showColumns");
-    for(int i = 0; i < m_showColumns.size(); ++i) {
-        g_settings->setArrayIndex(i);
-        g_settings->setValue("showColumn", m_showColumns[i]);
-    }
-    g_settings->endArray();
-
-    g_settings->beginWriteArray("headersOrder");
-    for(int i = 0; i < m_headersOrder.size(); ++i) {
-        g_settings->setArrayIndex(i);
-        g_settings->setValue("headerOrder", m_headersOrder[i]);
-    }
-    g_settings->endArray();
-
-    g_settings->beginWriteArray("undesirablePaths");
-    for(int i = 0; i < m_undesirablePaths.size(); ++i) {
-        g_settings->setArrayIndex(i);
-        g_settings->setValue("undesirablePath", m_undesirablePaths[i]);
-    }
-    g_settings->endArray();
+    g_database->setHistoricFilter(m_historicFilter);
+    g_database->setReleasedFilter(m_releasedFilter);
+    g_database->setApprovedFitler(m_approvedFilter);
+    g_database->setApprovedWithCommentsFilter(m_approvedWithCommentsFilter);
+    g_database->setReprovedFilter(m_reprovedFilter);
+    g_database->setShowColumns(m_showColumns);
+    g_database->setHeadersOrder(m_headersOrder);
+    g_database->setUndesirablePaths(m_undesirablePaths);
+    g_database->setLogEntries(m_logEntries);
 }
 
-void MainWindow::loadData()
+
+void MainWindow::loadData()//vai virar update database na classe database
 {
     for(QString fileName : getFiles()) {
         QFile file(m_path + "\\" + fileName);
@@ -222,33 +182,28 @@ void MainWindow::loadData()
             QStringList fields = line.split("\t");
             if(fields.size() != 9)
                 qDebug() << "erro";
-            EngProp engProp;
-            engProp.obra = fields[0];
-            engProp.evento = fields[1];
-            engProp.tipo = fields[2];
-            engProp.nome = fields[3];
-            engProp.usuario = fields[4];
-            engProp.empresa = fields[5];
-            engProp.hora = fields[6];
-            engProp.caminho = fields[7];
-            engProp.arquivo = fields[8];
-            engProp.data = data;
-            engProp.epochTime = getEpochTime(data, engProp.hora);
-            if(engProp.evento == "Aprovado Cliente" ||
-                    engProp.evento == "Liberado para Cliente" ||
-                    engProp.evento == "Reprovado Cliente" ||
-                    engProp.evento == "Aprovado Cliente c/ Ressalvas") {
-//                qDebug() << engProp.evento;//checkHere
-                m_database.push_back(engProp);
+            LogEntry logEntry;
+            logEntry.obra = fields[0];
+            logEntry.evento = fields[1];
+            logEntry.tipo = fields[2];
+            logEntry.nome = fields[3];
+            logEntry.usuario = fields[4];
+            logEntry.empresa = fields[5];
+            logEntry.hora = fields[6];
+            logEntry.caminho = fields[7];
+            logEntry.arquivo = fields[8];
+            logEntry.data = data;
+            logEntry.epochTime = getEpochTime(data, logEntry.hora);
+            if(logEntry.evento == "Aprovado Cliente" ||
+                    logEntry.evento == "Liberado para Cliente" ||
+                    logEntry.evento == "Reprovado Cliente" ||
+                    logEntry.evento == "Aprovado Cliente c/ Ressalvas") {
+                m_logEntries.push_back(logEntry);
             }
         }
         file.close();
     }
-
-    std::sort(m_database.begin(), m_database.end(), [](const EngProp& a, const EngProp& b) {
-        return a.epochTime < b.epochTime;
-    });
-
+    orderTableByColumn(col_Data);
     reloadTableData();
 }
 
@@ -309,9 +264,9 @@ void MainWindow::reloadTableData()
     m_tableData.clear();
 
     QStringList eventos = getEventos();
-    for(EngProp engProp : m_database) {
-        QString key = engProp.nome;
-        QString evento = engProp.evento;
+    for(LogEntry logEntry : m_logEntries) {
+        QString key = logEntry.nome;
+        QString evento = logEntry.evento;
 
         int index = indexOfFile(key);
         if(!m_historicFilter) {
@@ -320,7 +275,7 @@ void MainWindow::reloadTableData()
         }
 
         if(eventos.contains(evento))
-            m_tableData.push_back(engProp);
+            m_tableData.push_back(logEntry);
     }
 }
 
@@ -342,8 +297,8 @@ QStringList MainWindow::getEventos()
 int MainWindow::indexOfFile(QString key)
 {
     for(int i = 0; i < m_tableData.size(); i++) {
-        EngProp engProp = m_tableData[i];
-        if(engProp.nome == key)
+        LogEntry logEntry = m_tableData[i];
+        if(logEntry.nome == key)
             return i;
     }
     return -1;
@@ -365,8 +320,8 @@ void MainWindow::populateTable()
     m_table->setRowCount(0);
 
     int row = 0;
-    for(EngProp engProp : m_tableData) {
-        if(containsUndesirablePath(engProp.caminho))
+    for(LogEntry logEntry : m_tableData) {
+        if(containsUndesirablePath(logEntry.caminho))
             continue;
 
         m_table->insertRow(row);
@@ -374,33 +329,40 @@ void MainWindow::populateTable()
         if(m_showColumns[++col]) {
             QTableWidgetItem *item = new QTableWidgetItem(1);
             item->data(Qt::CheckStateRole);
-            item->setCheckState(Qt::Unchecked);
+            if(!logEntry.feito)
+                item->setCheckState(Qt::Unchecked);
+            else
+                item->setCheckState(Qt::Checked);
             m_table->setItem(row, col, item);
         }
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.obra));
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.evento));
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.tipo));
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.nome));
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.usuario));
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.empresa));
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.hora));
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.hora));
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.caminho));
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.arquivo));
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
         if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(engProp.data));
-        paintRow(engProp.epochTime, row);
+            m_table->setItem(row, col, new QTableWidgetItem(logEntry.data));
+        paintRow(logEntry.epochTime, row);
         row++;
 
     }
+
+    connect(m_table, &QTableWidget::cellClicked, [this](int row, int column) {
+        updateFromTable(row, column);
+    });
     m_table->resizeColumnsToContents();
 }
 
@@ -500,6 +462,70 @@ void MainWindow::applyFilter(int index)
     }
 }
 
+void MainWindow::orderTableByColumn(int index)
+{
+    if(index > m_orderByCrescent.size() - 1)
+        return;
+
+    bool crescent = m_orderByCrescent[index];
+
+    std::sort(m_logEntries.begin(), m_logEntries.end(), [index, crescent](const LogEntry& a, const LogEntry& b) {
+        switch(index) {
+        case col_Obra:
+            if(crescent)
+                return a.obra < b.obra;
+            else
+                return a.obra > b.obra;
+        case col_Evento:
+            if(crescent)
+                return a.evento < b.evento;
+            else
+                return a.evento > b.evento;
+        case col_Tipo:
+            if(crescent)
+                return a.tipo < b.tipo;
+            else
+                return a.tipo > b.tipo;
+        case col_Nome:
+            if(crescent)
+                return a.nome < b.nome;
+            else
+                return a.nome > b.nome;
+        case col_Usuario:
+            if(crescent)
+                return a.usuario < b.usuario;
+            else
+                return a.usuario > b.usuario;
+        case col_Empresa:
+            if(crescent)
+                return a.empresa < b.empresa;
+            else
+                return a.empresa > b.empresa;
+        case col_Hora:
+            if(crescent)
+                return a.epochTime < b.epochTime;
+            else
+                return a.epochTime > b.epochTime;
+        case col_Caminho:
+            if(crescent)
+                return a.caminho < b.caminho;
+            else
+                return a.caminho > b.caminho;
+        case col_Arquivo:
+            if(crescent)
+                return a.arquivo < b.arquivo;
+            else
+                return a.arquivo > b.arquivo;
+        case col_Data:
+            if(crescent)
+                return a.epochTime < b.epochTime;
+            else
+                return a.epochTime > b.epochTime;
+        }
+    });
+    m_orderByCrescent[index] = !m_orderByCrescent[index];
+}
+
 void MainWindow::updateHeadersOrder()
 {
     QStringList names;
@@ -517,25 +543,12 @@ void MainWindow::updateHeadersOrder()
 
 void MainWindow::resetHeadersOrder()//checkHere
 {
-//    for(int i = 0; i < m_headersName->size(); i++) {
-//        int index = m_headersOrder.indexOf(m_headersName->at(i));
-//        if(index != i) {
-//            m_table->horizontalHeader()->moveSection(index, i);
-//        }
-//    }
-}
-
-void MainWindow::invertData()
-{
-    QVector<EngProp> clone;
-    for(int i = m_tableData.size() - 1; i >= 0; i--)
-        clone.push_back(m_tableData[i]);
-
-    m_tableData.clear();
-    for(EngProp engProp : clone)
-        m_tableData.push_back(engProp);
-
-    populateTable();
+    //    for(int i = 0; i < m_headersName->size(); i++) {
+    //        int index = m_headersOrder.indexOf(m_headersName->at(i));
+    //        if(index != i) {
+    //            m_table->horizontalHeader()->moveSection(index, i);
+    //        }
+    //    }
 }
 
 QTreeWidget* MainWindow::getTree()
@@ -550,8 +563,8 @@ QTreeWidget* MainWindow::getTree()
     QTreeWidgetItem *topLevelItem;
 
     QStringList singlePaths;
-    for(EngProp engProp : m_database) {
-        QString path = engProp.caminho;
+    for(LogEntry logEntry : m_logEntries) {
+        QString path = logEntry.caminho;
 
         if((path.length() - path.lastIndexOf(".")) == 4)
             path = path.mid(0, path.lastIndexOf("\\"));
@@ -570,7 +583,7 @@ QTreeWidget* MainWindow::getTree()
             topLevelItem->setFlags(topLevelItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
             topLevelItem->setText(0, tokens[0]);
             topLevelItem->setCheckState(0, getCheckState(topLevelItem));
-//            setEnabled(topLevelItem);
+            //            setEnabled(topLevelItem);
             topLevelItem->setIcon(0, QIcon("icons\\file.png"));
             treeWidget->addTopLevelItem(topLevelItem);
         }
@@ -614,36 +627,38 @@ void MainWindow::openMenu()
     dialog.setWindowTitle("Menu");
     dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-    QFormLayout* formLayout = new QFormLayout();
-    dialog.setLayout(formLayout);
+    QGridLayout* gridLayout = new QGridLayout();
+    dialog.setLayout(gridLayout);
 
-    formLayout->addRow(new QLabel("Exibir colunas:"));
+    QVBoxLayout *vBoxCol = new QVBoxLayout;
 
-    QVBoxLayout *vBox = new QVBoxLayout;
-
-    QVector<QCheckBox*> checkBoxes;
+    QVector<QCheckBox*> checkBoxesCol;
     for(int i = 0; i < m_headersName->size(); i++) {
         QCheckBox  *checkBox = new QCheckBox (m_headersName->at(i));
         checkBox->setChecked(m_showColumns[i]);
-        vBox->addWidget(checkBox);
-        checkBoxes.push_back(checkBox);
+        vBoxCol->addWidget(checkBox);
+        checkBoxesCol.push_back(checkBox);
     }
 
-    QGroupBox *groupBox = new QGroupBox();
-    groupBox->setLayout(vBox);
-
-    formLayout->addRow(groupBox);
+    QGroupBox *groupBoxCol = new QGroupBox();
+    groupBoxCol->setLayout(vBoxCol);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
-    formLayout->addRow(buttonBox);
+
     connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
     connect(buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
+
+    int row = 0;
+    gridLayout->addWidget(new QLabel("Exibir colunas:"), row++, 0);
+    gridLayout->addWidget(groupBoxCol, row++, 0);
+    gridLayout->addWidget(buttonBox, row++, 0);
+
 
     if(dialog.exec() != QDialog::Accepted)
         return;
 
     for(int i = 0; i < m_showColumns.size(); i++) {
-        bool show = checkBoxes[i]->isChecked();
+        bool show = checkBoxesCol[i]->isChecked();
         m_showColumns[i] = show;
         m_table->setColumnHidden(i, !show);
     }
@@ -652,10 +667,14 @@ void MainWindow::openMenu()
 
 void MainWindow::clearFilters()
 {
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "Limpar filtros", "Tem certeza de que deseja limpar todos os filtros?", QMessageBox::Yes|QMessageBox::No);
+
+    if(reply != QMessageBox::Yes)
+        return;
+
     m_historicFilter = false;
     m_filterCategory->setCurrentIndex(0);
-
-    m_orderBy->setCurrentIndex(0);
 
     resetHeadersOrder();
     m_headersOrder.clear();
@@ -673,6 +692,14 @@ void MainWindow::clearFilters()
     }
 
     m_undesirablePaths.clear();
+
+
+    m_orderByCrescent.clear();
+    for(int i = 0; i < m_headersName->size(); i++) {
+        m_orderByCrescent.push_back(true);
+    }
+
+    orderTableByColumn(col_Data);
 
     reloadTableData();
     populateTable();
@@ -749,3 +776,40 @@ void MainWindow::setEnabled(QTreeWidgetItem *item)
     else
         item->setFlags(item->flags() | Qt::ItemIsEnabled);
 }
+
+void MainWindow::updateFromTable(int row, int col)
+{
+    if(col != 0)
+        return;
+
+    QTableWidgetItem *item = m_table->item(row, col);
+    int indexTableData = -1;
+    int indexDatabase = -1;
+    for(int i = 0; i < m_tableData.size(); i++) {
+        QString nome = m_table->item(row, col_Nome)->text();
+        QString hora = m_table->item(row, col_Hora)->text();
+        if(m_tableData[i].nome == nome && m_tableData[i].hora == hora)
+            indexTableData = i;
+
+        if(m_logEntries[i].nome == nome && m_logEntries[i].hora == hora)
+            indexDatabase = i;
+    }
+
+    if(indexTableData == -1)
+        return;
+
+    if(item->checkState() == Qt::Checked)
+        m_tableData[indexTableData].feito = true;
+    else
+        m_tableData[indexTableData].feito = false;
+
+    if(indexDatabase == -1)
+        return;
+
+    if(item->checkState() == Qt::Checked)
+        m_logEntries[indexDatabase].feito = true;
+    else
+        m_logEntries[indexDatabase].feito = false;
+
+}
+

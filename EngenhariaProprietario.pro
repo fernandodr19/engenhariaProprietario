@@ -27,9 +27,13 @@ Release:DESTDIR = ../../release
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+    database.cpp \
+    logentry.cpp
 
 HEADERS += \
-        mainwindow.h
+        mainwindow.h \
+    database.h \
+    logentry.h
 
 win32:RC_FILE = resources.rc
