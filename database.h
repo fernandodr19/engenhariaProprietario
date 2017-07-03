@@ -14,6 +14,8 @@ public:
     void load();
     void save();
 
+    QStringList getReadDates() { return m_readDatesList; }
+    QString getFilesPath() { return m_filesPath; }
     bool getHistoricFilter() { return m_historicFilter; }
     bool getReleasedFilter() { return m_releasedFilter; }
     bool getApprovedFilter() { return m_approvedFilter; }
@@ -24,7 +26,7 @@ public:
     QVector<bool> getShowColumns() { return m_showColumns; }
     QVector<LogEntry> getLogEntries() { return m_logEntries; }
 
-    void setFilesPath(QString path) { m_path = path; }
+    void setFilesPath(QString path) { m_filesPath = path; }
     void setHistoricFilter(bool historicFilter) { m_historicFilter = historicFilter; }
     void setReleasedFilter(bool releasedFilter) { m_releasedFilter = releasedFilter; }
     void setApprovedFitler(bool approvedFitler) { m_approvedFilter = approvedFitler; }
@@ -35,10 +37,10 @@ public:
     void setShowColumns(QVector<bool> showColumns) { m_showColumns = showColumns; }
     void setLogEntries(QVector<LogEntry> logEntries) { m_logEntries = logEntries; }
 
+    void loadNewLogEntry();
 private:
     void loadLogEntry();
     void saveLogEntry();
-    void loadNewLogEntry();
     QStringList getFiles();
     qint64 getEpochTime(QString date, QString time);
     QString getDate(QString fileName);
@@ -55,7 +57,7 @@ private:
 
     QVector<LogEntry> m_logEntries;
     QStringList m_readDatesList;
-    QString m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";//vai ser uma variavel
+    QString m_filesPath = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";//vai ser uma variavel
 };
 
 #endif // DATABASE_H

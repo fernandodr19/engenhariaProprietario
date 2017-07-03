@@ -67,6 +67,8 @@ private:
     QPushButton *m_config;
     QComboBox *m_filterCategory;
     QTableWidget *m_table;
+    QString m_filesPath;
+    QStringList m_readDates;
 
     //FILTERS
     bool m_historicFilter; //historico/atual
@@ -79,7 +81,7 @@ private:
     QStringList m_headersOrder;
     QVector<bool> m_orderByCrescent;
 
-    QStringList *m_headersName;
+    QStringList m_headersName;
     QVector<LogEntry> m_tableData;
     QVector<LogEntry> m_logEntries;
 };

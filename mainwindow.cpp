@@ -73,10 +73,10 @@ MainWindow::MainWindow(QWidget *parent)
         populateTable();
     });
 
-    m_headersName = new QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+    m_headersName = QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
 
     m_table = new QTableWidget(0, 11);
-    m_table->setHorizontalHeaderLabels({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+    m_table->setHorizontalHeaderLabels(m_headersName);
     m_table->horizontalHeader()->setSectionsMovable(true);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     connect(m_table->horizontalHeader(), &QHeaderView::sectionClicked, [this](int index) {
@@ -99,6 +99,7 @@ MainWindow::MainWindow(QWidget *parent)
     gridLayout->addWidget(m_filterCategory, row++, col++);
     gridLayout->addWidget(m_table, row++, 0, 1, col);
 
+    g_database->load();
     updateFromDatabase();
     reloadTableData();
     initializeTable();
@@ -114,30 +115,32 @@ MainWindow::~MainWindow()
 
 void MainWindow::updateFromDatabase()
 {
+    m_filesPath = g_database->getFilesPath();
+    m_readDates = g_database->getReadDates();
     m_historicFilter = g_database->getHistoricFilter();
     m_releasedFilter = g_database->getReleasedFilter();
     m_approvedFilter = g_database->getApprovedFilter();
     m_approvedWithCommentsFilter = g_database->getApprovedWithCommentsFilter();
     m_reprovedFilter = g_database->getReprovedFilter();
 
-    for(int i = 0; i < m_headersName->size(); i++) {
+    for(int i = 0; i < m_headersName.size(); i++) {
         m_orderByCrescent.push_back(true);
     }
 
     m_showColumns = g_database->getShowColumns();
 
-    if(m_showColumns.size() != m_headersName->size()) {
+    if(m_showColumns.size() != m_headersName.size()) {
         m_showColumns.clear();
-        for(int i = 0; i < m_headersName->size(); i++)
+        for(int i = 0; i < m_headersName.size(); i++)
             m_showColumns.push_back(true);
     }
 
     m_headersOrder = g_database->getHeadersOrder();
 
-    if(m_headersOrder.size() != m_headersName->size()) {
+    if(m_headersOrder.size() != m_headersName.size()) {
         m_headersOrder.clear();
-        for(int i = 0; i < m_headersName->size(); i++)
-            m_headersOrder.push_back(m_headersName->at(i));
+        for(int i = 0; i < m_headersName.size(); i++)
+            m_headersOrder.push_back(m_headersName[i]);
     }
 
     m_undesirablePaths = g_database->getUndesirablePaths();
@@ -146,6 +149,7 @@ void MainWindow::updateFromDatabase()
 
 void MainWindow::updateToDatabase()
 {
+    g_database->setFilesPath(m_filesPath);
     g_database->setHistoricFilter(m_historicFilter);
     g_database->setReleasedFilter(m_releasedFilter);
     g_database->setApprovedFitler(m_approvedFilter);
@@ -274,17 +278,17 @@ void MainWindow::paintRow(qint64 epochTime, int row)
     double delayedDays = diff/day;
 
     if(delayedDays > 7) {
-        for(int col = 1; col < m_headersName->size(); col++) {
+        for(int col = 1; col < m_headersName.size(); col++) {
             if(m_showColumns[col])
                 m_table->item(row, col)->setBackgroundColor(QColor(255, 50, 70));
         }
     } else if(delayedDays > 5) {
-        for(int col = 1; col < m_headersName->size(); col++) {
+        for(int col = 1; col < m_headersName.size(); col++) {
             if(m_showColumns[col])
                 m_table->item(row, col)->setBackgroundColor(QColor(255,165,0));
         }
     } else if(delayedDays > 3) {
-        for(int col = 1; col < m_headersName->size(); col++) {
+        for(int col = 1; col < m_headersName.size(); col++) {
             if(m_showColumns[col])
                 m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
         }
@@ -358,8 +362,8 @@ void MainWindow::orderTableByColumn(int index)
 void MainWindow::updateHeadersOrder()
 {
     QStringList names;
-    for(int i = 0; i < m_headersName->size(); i++)
-        names.push_back(m_headersName->at(i));
+    for(int i = 0; i < m_headersName.size(); i++)
+        names.push_back(m_headersName[i]);
 
     for(int i = 0; i < names.size(); i++) {
         int index = names.indexOf(m_headersOrder[i]);
@@ -458,6 +462,7 @@ void MainWindow::openMenu()
     QDialog dialog;
     dialog.setWindowTitle("Menu");
     dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+    dialog.setMinimumWidth(600);
 
     QGridLayout* gridLayout = new QGridLayout();
     dialog.setLayout(gridLayout);
@@ -465,8 +470,8 @@ void MainWindow::openMenu()
     QVBoxLayout *vBoxCol = new QVBoxLayout;
 
     QVector<QCheckBox*> checkBoxesCol;
-    for(int i = 0; i < m_headersName->size(); i++) {
-        QCheckBox  *checkBox = new QCheckBox (m_headersName->at(i));
+    for(int i = 0; i < m_headersName.size(); i++) {
+        QCheckBox  *checkBox = new QCheckBox (m_headersName[i]);
         checkBox->setChecked(m_showColumns[i]);
         vBoxCol->addWidget(checkBox);
         checkBoxesCol.push_back(checkBox);
@@ -500,6 +505,12 @@ void MainWindow::openMenu()
     QGroupBox *groupBoxPaths = new QGroupBox("Filtro por caminhos");
     groupBoxPaths->setLayout(vBoxPaths);
 
+    QLineEdit *filesPath = new QLineEdit(m_filesPath);
+    QHBoxLayout *hPath = new QHBoxLayout;
+    hPath->addWidget(new QLabel("Caminho da pasta com os arquivos "), 0);
+    hPath->addWidget(filesPath);
+
+
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
 
     connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
@@ -509,6 +520,7 @@ void MainWindow::openMenu()
     gridLayout->addWidget(groupBoxVisibleCol, row, 0);
     gridLayout->addWidget(groupBoxPaths, row++, 1, 2, 1);
     gridLayout->addWidget(groupBoxEvents, row++, 0);
+    gridLayout->addLayout(hPath, row++, 0, 1, 2);
     gridLayout->addWidget(buttonBox, row++, 1);
 
 
@@ -526,7 +538,16 @@ void MainWindow::openMenu()
     m_approvedWithCommentsFilter = approvedWithCommentsBox->isChecked();
     m_reprovedFilter = reprovedBox->isChecked();
 
-    visitTree(treeWidget);//tirar o popuatela de dentro
+    visitTree(treeWidget);//checkHere tirar o popuatela de dentro
+
+    QString filesPathText = filesPath->text();
+    if(m_filesPath != filesPathText) {
+        g_database->setFilesPath(filesPathText);
+        m_filesPath = filesPathText;
+        g_database->loadNewLogEntry();
+        m_logEntries = g_database->getLogEntries();
+        m_readDates = g_database->getReadDates();
+    }
 
     reloadTableData();
     populateTable();
@@ -545,8 +566,8 @@ void MainWindow::clearFilters()
 
     resetHeadersOrder();
     m_headersOrder.clear();
-    for(int i = 0; i < m_headersName->size(); i++)
-        m_headersOrder.push_back(m_headersName->at(i));
+    for(int i = 0; i < m_headersName.size(); i++)
+        m_headersOrder.push_back(m_headersName[i]);
 
     m_releasedFilter = true;
     m_approvedFilter = false;
@@ -562,7 +583,7 @@ void MainWindow::clearFilters()
 
 
     m_orderByCrescent.clear();
-    for(int i = 0; i < m_headersName->size(); i++) {
+    for(int i = 0; i < m_headersName.size(); i++) {
         m_orderByCrescent.push_back(true);
     }
 

@@ -11,7 +11,7 @@ QSettings *g_settings = nullptr;
 
 Database::Database()
 {
-    m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";//vai ser uma variavel
+//    m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";//vai ser uma variavel
 
     QCoreApplication::setOrganizationName("Fluxo Engenharia");
     QCoreApplication::setOrganizationDomain("fluxoengenharia.com.br");
@@ -19,8 +19,6 @@ Database::Database()
     QCoreApplication::setApplicationName("Controle EP");
 
     g_settings = new QSettings(QSettings::IniFormat, QSettings::UserScope, QApplication::organizationName(), QApplication::applicationName());
-
-    load();
 }
 
 Database::~Database()
@@ -30,13 +28,15 @@ Database::~Database()
 
 void Database::load()
 {
+    m_filesPath = g_settings->value("filesPath").toString();
+
     m_historicFilter = g_settings->value("historicFilter", false).toBool();
     m_releasedFilter = g_settings->value("releasedFilter", true).toBool();
     m_approvedFilter = g_settings->value("approvedFilter", false).toBool();
     m_approvedWithCommentsFilter = g_settings->value("approvedWithCommentsFilter", false).toBool();
     m_reprovedFilter = g_settings->value("reprovedFilter", false).toBool();
 
-    QStringList *m_headersName = new QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});//checkHere
+    QStringList m_headersName = {"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"};
 
     int size = g_settings->beginReadArray("showColumns");
     for (int i = 0; i < size; ++i) {
@@ -46,9 +46,9 @@ void Database::load()
     }
     g_settings->endArray();
 
-    if(m_showColumns.size() != m_headersName->size()) {
+    if(m_showColumns.size() != m_headersName.size()) {
         m_showColumns.clear();
-        for(int i = 0; i < m_headersName->size(); i++)
+        for(int i = 0; i < m_headersName.size(); i++)
             m_showColumns.push_back(true);
     }
 
@@ -60,10 +60,10 @@ void Database::load()
     }
     g_settings->endArray();
 
-    if(m_headersOrder.size() != m_headersName->size()) {
+    if(m_headersOrder.size() != m_headersName.size()) {
         m_headersOrder.clear();
-        for(int i = 0; i < m_headersName->size(); i++)
-            m_headersOrder.push_back(m_headersName->at(i));
+        for(int i = 0; i < m_headersName.size(); i++)
+            m_headersOrder.push_back(m_headersName[i]);
     }
 
     size = g_settings->beginReadArray("undesirablePaths");
@@ -87,6 +87,8 @@ void Database::load()
 
 void Database::save()
 {
+    g_settings->setValue("filesPath", m_filesPath);
+
     g_settings->setValue("historicFilter", m_historicFilter);
     g_settings->setValue("releasedFilter", m_releasedFilter);
     g_settings->setValue("approvedFilter", m_approvedFilter);
@@ -173,7 +175,7 @@ void Database::saveLogEntry()
 void Database::loadNewLogEntry()
 {
     for(QString fileName : getFiles()) {
-        QFile file(m_path + "\\" + fileName);
+        QFile file(m_filesPath + "\\" + fileName);
         if(!file.open(QIODevice::ReadOnly)) {
             QMessageBox::information(0, "error", file.errorString());
         }
@@ -213,7 +215,7 @@ void Database::loadNewLogEntry()
 
 QStringList Database::getFiles()
 {
-    QDir dir(m_path);
+    QDir dir(m_filesPath);
     QStringList entryList = dir.entryList();
 
     QStringList filesList;
