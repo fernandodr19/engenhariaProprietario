@@ -383,6 +383,8 @@ void MainWindow::resetHeadersOrder()//checkHere
 QTreeWidget* MainWindow::getTree()
 {
     QTreeWidget *treeWidget = new QTreeWidget();
+    treeWidget->setHeaderHidden(true);
+
     connect(treeWidget, &QTreeWidget::itemClicked, [this](QTreeWidgetItem *item){
         for (int i = 0; i < item->childCount(); ++i) {
             setEnabled(item->child(i));
@@ -401,6 +403,7 @@ QTreeWidget* MainWindow::getTree()
         if(!singlePaths.contains(path))
             singlePaths.push_back(path);
     }
+    std::sort(singlePaths.begin(), singlePaths.end());
 
     for(QString path : singlePaths) {
         QStringList tokens = path.split("\\");
@@ -469,7 +472,7 @@ void MainWindow::openMenu()
         checkBoxesCol.push_back(checkBox);
     }
 
-    QGroupBox *groupBoxVisibleCol = new QGroupBox("Exibir Colounas");
+    QGroupBox *groupBoxVisibleCol = new QGroupBox("Exibir Colunas");
     groupBoxVisibleCol->setLayout(vBoxCol);
 
 
@@ -583,7 +586,7 @@ void MainWindow::visitTree(QTreeWidget *tree) {
     updateUndesirabelPaths(uncheckdItems);
 }
 
-void MainWindow::updateUndesirabelPaths(QVector<QTreeWidgetItem *> items)
+void MainWindow::updateUndesirabelPaths(const QVector<QTreeWidgetItem*>& items)
 {
     QString path;
     m_undesirablePaths.clear();
@@ -595,17 +598,17 @@ void MainWindow::updateUndesirabelPaths(QVector<QTreeWidgetItem *> items)
     populateTable();
 }
 
-bool MainWindow::containsUndesirablePath(QString path)
+bool MainWindow::containsUndesirablePath(const QString &path)
 {
-    for(QString undesirablePath : m_undesirablePaths)
+    for(const QString& undesirablePath : m_undesirablePaths)
         if(path.contains(undesirablePath))
             return true;
     return false;
 }
 
-bool MainWindow::isUndesirablePath(QString path)
+bool MainWindow::isUndesirablePath(const QString& path)
 {
-    for(QString undesirablePath : m_undesirablePaths)
+    for(const QString& undesirablePath : m_undesirablePaths)
         if(path == undesirablePath)
             return true;
     return false;

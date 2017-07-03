@@ -52,9 +52,9 @@ private:
     void paintRow(qint64, int row);
     void visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *item);
     void visitTree(QTreeWidget *tree);
-    void updateUndesirabelPaths(QVector<QTreeWidgetItem*> items);
-    bool containsUndesirablePath(QString path);
-    bool isUndesirablePath(QString path);
+    void updateUndesirabelPaths(const QVector<QTreeWidgetItem *>& items);
+    bool containsUndesirablePath(const QString& path);
+    bool isUndesirablePath(const QString& path);
     QString getPath(QTreeWidgetItem *item);
     Qt::CheckState getCheckState(QTreeWidgetItem *item);
     void setEnabled(QTreeWidgetItem *item);
