@@ -1,12 +1,18 @@
 #include "database.h"
 #include <QSettings>
 #include <QApplication>
+#include <QDir>
+#include <QMessageBox>
+#include <QTextStream>
+#include <QDateTime>
 #include "logentry.h"
 
 QSettings *g_settings = nullptr;
 
 Database::Database()
 {
+    m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";//vai ser uma variavel
+
     QCoreApplication::setOrganizationName("Fluxo Engenharia");
     QCoreApplication::setOrganizationDomain("fluxoengenharia.com.br");
     QCoreApplication::setApplicationVersion("1.0.0");
@@ -68,6 +74,14 @@ void Database::load()
     }
     g_settings->endArray();
 
+    size = g_settings->beginReadArray("readDatesList");
+    for (int i = 0; i < size; ++i) {
+        g_settings->setArrayIndex(i);
+        QString path = g_settings->value("readDate").toString();
+        m_readDatesList.push_back(path);
+    }
+    g_settings->endArray();
+
     loadLogEntry();
 }
 
@@ -100,6 +114,13 @@ void Database::save()
     }
     g_settings->endArray();
 
+    g_settings->beginWriteArray("readDatesList");
+    for(int i = 0; i < m_readDatesList.size(); ++i) {
+        g_settings->setArrayIndex(i);
+        g_settings->setValue("readDate", m_readDatesList[i]);
+    }
+    g_settings->endArray();
+
     saveLogEntry();
 }
 
@@ -119,10 +140,12 @@ void Database::loadLogEntry()
         logEntry.hora = g_settings->value("hora").toString();
         logEntry.caminho = g_settings->value("caminho").toString();
         logEntry.data = g_settings->value("data").toString();
-        logEntry.epochTime = g_settings->value("epochTime").toInt();
+        logEntry.epochTime = g_settings->value("epochTime").toULongLong();
         m_logEntries.push_back(logEntry);
     }
     g_settings->endArray();
+
+    loadNewLogEntry();
 }
 
 void Database::saveLogEntry()
@@ -145,4 +168,102 @@ void Database::saveLogEntry()
         g_settings->setValue("epochTime", logEntry.epochTime);
     }
     g_settings->endArray();
+}
+
+void Database::loadNewLogEntry()
+{
+    for(QString fileName : getFiles()) {
+        QFile file(m_path + "\\" + fileName);
+        if(!file.open(QIODevice::ReadOnly)) {
+            QMessageBox::information(0, "error", file.errorString());
+        }
+
+        QTextStream in(&file);
+
+        if(!in.atEnd())
+            in.readLine();
+
+        QString data = getDate(fileName);
+        while(!in.atEnd()) {
+            QString line = in.readLine();
+            QStringList fields = line.split("\t");
+            LogEntry logEntry;
+            logEntry.feito = false;
+            logEntry.obra = fields[0];
+            logEntry.evento = fields[1];
+            logEntry.tipo = fields[2];
+            logEntry.nome = fields[3];
+            logEntry.usuario = fields[4];
+            logEntry.empresa = fields[5];
+            logEntry.hora = fields[6];
+            logEntry.caminho = fields[7];
+            logEntry.arquivo = fields[8];
+            logEntry.data = data;
+            logEntry.epochTime = getEpochTime(data, logEntry.hora);
+            if(logEntry.evento == "Aprovado Cliente" ||
+                    logEntry.evento == "Liberado para Cliente" ||
+                    logEntry.evento == "Reprovado Cliente" ||
+                    logEntry.evento == "Aprovado Cliente c/ Ressalvas") {
+                m_logEntries.push_back(logEntry);
+            }
+        }
+        file.close();
+    }
+}
+
+QStringList Database::getFiles()
+{
+    QDir dir(m_path);
+    QStringList entryList = dir.entryList();
+
+    QStringList filesList;
+    bool contains = false;
+    for(QString candidate : entryList) {
+        contains = false;
+        if(candidate.endsWith(".txt")) {
+            QString dateCandidate = candidate.mid(candidate.lastIndexOf("_") + 1, 8);
+            for(QString file : filesList) {
+                QString dateFile = file.mid(file.lastIndexOf("_") + 1, 8);
+                if(dateFile == dateCandidate)
+                    contains = true;
+            }
+            if(m_readDatesList.contains(dateCandidate))
+                contains = true;
+
+            if(!contains) {
+                m_readDatesList.push_back(dateCandidate);
+                filesList.push_back(candidate);
+            }
+        }
+    }
+    return filesList;
+}
+
+qint64 Database::getEpochTime(QString date, QString time)
+{
+    if(date.length() < 10 || time.length() < 8)
+        return -1;
+
+    QStringList splitedDate = date.split("/");
+    int year = splitedDate[2].toInt();
+    int month = splitedDate[1].toInt();
+    int day = splitedDate[0].toInt();
+
+    QStringList splitedTime = time.split(":");
+    int hour = splitedTime[0].toInt();
+    int minute = splitedTime[1].toInt();
+    int second = splitedTime[2].toInt();
+
+    QDateTime dateTime(QDate(year, month, day), QTime(hour, minute, second));
+    return dateTime.toMSecsSinceEpoch();
+}
+
+QString Database::getDate(QString fileName)
+{
+    fileName = fileName.mid(fileName.lastIndexOf("_") + 1, 8);
+
+    QString year = fileName.mid(0, 4);
+    QString month = fileName.mid(4, 2);
+    QString day = fileName.mid(6, 2);
+    return day + "/" + month + "/" + year;
 }

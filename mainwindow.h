@@ -37,24 +37,19 @@ public:
     ~MainWindow();
 
 private slots:
-    void applyFilter(int index);
     void clearFilters();
 
 private:
     void updateFromDatabase();
     void updateToDatabase();
-    void loadData();
-    QStringList getFiles();
-    QString getDate(QString fileName);
     void initializeTable();
-    int getEpochTime(QString date, QString time);
     void reloadTableData();
     int indexOfFile(QString key);
     void populateTable();
     QStringList getEventos();
     QTreeWidget* getTree();
     void openMenu();
-    void paintRow(int epochTime, int row);
+    void paintRow(qint64, int row);
     void visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *item);
     void visitTree(QTreeWidget *tree);
     void updateUndesirabelPaths(QVector<QTreeWidgetItem*> items);
@@ -67,8 +62,6 @@ private:
     void resetHeadersOrder();
     void orderTableByColumn(int index);
     void updateFromTable(int row, int col);
-
-    QString m_path;
 
     QPushButton *m_clearFilters;
     QPushButton *m_config;

@@ -1,8 +1,5 @@
 #include "mainwindow.h"
 #include <QVBoxLayout>
-#include <QFile>
-#include <QDir>
-#include <QTextStream>
 #include <QMessageBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -52,8 +49,6 @@ MainWindow::MainWindow(QWidget *parent)
     QGridLayout *gridLayout = new QGridLayout;
     verticalLayout->addLayout(gridLayout);
 
-    m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";
-
     m_config = new QPushButton();
     m_config->setIcon(QIcon("icons\\settings.ico"));
     m_config->setStyleSheet("border: none");
@@ -83,12 +78,12 @@ MainWindow::MainWindow(QWidget *parent)
     m_table = new QTableWidget(0, 11);
     m_table->setHorizontalHeaderLabels({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
     m_table->horizontalHeader()->setSectionsMovable(true);
+    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     connect(m_table->horizontalHeader(), &QHeaderView::sectionClicked, [this](int index) {
         orderTableByColumn(index);
-        reloadTableData();
         populateTable();
     });
-    connect(m_table->horizontalHeader(), &QHeaderView::sectionDoubleClicked, [this](int index) { applyFilter(index); });
+
     connect(m_table->horizontalHeader(), &QHeaderView::sectionPressed, [this]() {
         connect(m_table->horizontalHeader(), &QHeaderView::sectionMoved, [this](int, int from, int to) {
             m_headersOrder.move(from, to);
@@ -105,9 +100,9 @@ MainWindow::MainWindow(QWidget *parent)
     gridLayout->addWidget(m_table, row++, 0, 1, col);
 
     updateFromDatabase();
-//    loadData();
     reloadTableData();
     initializeTable();
+//    m_table->setSortingEnabled(true);
 }
 
 MainWindow::~MainWindow()
@@ -162,103 +157,6 @@ void MainWindow::updateToDatabase()
     g_database->setLogEntries(m_logEntries);
 }
 
-
-void MainWindow::loadData()//vai virar update database na classe database
-{
-    for(QString fileName : getFiles()) {
-        QFile file(m_path + "\\" + fileName);
-        if(!file.open(QIODevice::ReadOnly)) {
-            QMessageBox::information(0, "error", file.errorString());
-        }
-
-        QTextStream in(&file);
-
-        if(!in.atEnd())
-            in.readLine();
-
-        QString data = getDate(fileName);
-        while(!in.atEnd()) {
-            QString line = in.readLine();
-            QStringList fields = line.split("\t");
-            if(fields.size() != 9)
-                qDebug() << "erro";
-            LogEntry logEntry;
-            logEntry.obra = fields[0];
-            logEntry.evento = fields[1];
-            logEntry.tipo = fields[2];
-            logEntry.nome = fields[3];
-            logEntry.usuario = fields[4];
-            logEntry.empresa = fields[5];
-            logEntry.hora = fields[6];
-            logEntry.caminho = fields[7];
-            logEntry.arquivo = fields[8];
-            logEntry.data = data;
-            logEntry.epochTime = getEpochTime(data, logEntry.hora);
-            if(logEntry.evento == "Aprovado Cliente" ||
-                    logEntry.evento == "Liberado para Cliente" ||
-                    logEntry.evento == "Reprovado Cliente" ||
-                    logEntry.evento == "Aprovado Cliente c/ Ressalvas") {
-                m_logEntries.push_back(logEntry);
-            }
-        }
-        file.close();
-    }
-    orderTableByColumn(col_Data);
-    reloadTableData();
-}
-
-QStringList MainWindow::getFiles()
-{
-    QDir dir(m_path);
-    QStringList entryList = dir.entryList();
-
-    QStringList filesList;
-    bool contains = false;
-    for(QString candidate : entryList) {
-        contains = false;
-        if(candidate.endsWith(".txt")) {
-            QString dateCandidate = candidate.mid(candidate.lastIndexOf("_") + 1, 8);
-            for(QString file : filesList) {
-                QString dateFile = file.mid(file.lastIndexOf("_") + 1, 8);
-                if(dateFile == dateCandidate)
-                    contains = true;
-            }
-            if(!contains)
-                filesList.push_back(candidate);
-        }
-    }
-    return filesList;
-}
-
-QString MainWindow::getDate(QString fileName)
-{
-    fileName = fileName.mid(fileName.lastIndexOf("_") + 1, 8);
-
-    QString year = fileName.mid(0, 4);
-    QString month = fileName.mid(4, 2);
-    QString day = fileName.mid(6, 2);
-    return day + "/" + month + "/" + year;
-}
-
-int MainWindow::getEpochTime(QString date, QString time)
-{
-    if(date.length() < 10 || time.length() < 8)
-        return -1;
-
-    QStringList splitedDate = date.split("/");
-    int year = splitedDate[2].toInt();
-    int month = splitedDate[1].toInt();
-    int day = splitedDate[0].toInt();
-
-    QStringList splitedTime = time.split(":");
-    int hour = splitedTime[0].toInt();
-    int minute = splitedTime[1].toInt();
-    int second = splitedTime[2].toInt();
-
-    QDateTime dateTime(QDate(year, month, day), QTime(hour, minute, second));
-    return dateTime.toMSecsSinceEpoch();
-}
-
 void MainWindow::reloadTableData()
 {
     m_tableData.clear();
@@ -309,6 +207,7 @@ void MainWindow::initializeTable()
     for(int i = 0; i < m_showColumns.size(); i++)
         m_table->setColumnHidden(i, !m_showColumns[i]);
 
+    orderTableByColumn(col_Data);
     updateHeadersOrder();
 
     populateTable();
@@ -366,99 +265,29 @@ void MainWindow::populateTable()
     m_table->resizeColumnsToContents();
 }
 
-void MainWindow::paintRow(int epochTime, int row)
+void MainWindow::paintRow(qint64 epochTime, int row)
 {
-    int day = 86400000;//msecs
-    int actualTime = QDateTime::currentMSecsSinceEpoch();
-    int diff = actualTime - epochTime;
+    double day = 86400000;//msecs
+    double actualTime = QDateTime::currentMSecsSinceEpoch();
+    double diff = actualTime - epochTime;
 
-    if(diff > day*7) {
+    double delayedDays = diff/day;
+
+    if(delayedDays > 7) {
         for(int col = 1; col < m_headersName->size(); col++) {
             if(m_showColumns[col])
                 m_table->item(row, col)->setBackgroundColor(QColor(255, 50, 70));
         }
-    } else if(diff > day*5) {
+    } else if(delayedDays > 5) {
         for(int col = 1; col < m_headersName->size(); col++) {
             if(m_showColumns[col])
                 m_table->item(row, col)->setBackgroundColor(QColor(255,165,0));
         }
-    } else if(diff > day*3) {
+    } else if(delayedDays > 3) {
         for(int col = 1; col < m_headersName->size(); col++) {
             if(m_showColumns[col])
                 m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
         }
-    }
-}
-
-void MainWindow::applyFilter(int index)
-{
-    if(index == 2) {
-        QDialog dialog;
-        dialog.setWindowTitle("Filtros");
-        dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-
-        QFormLayout* formLayout = new QFormLayout();
-        dialog.setLayout(formLayout);
-
-        formLayout->addRow(new QLabel("Eventos a serem filtrados:"));
-
-        QVBoxLayout *vBox = new QVBoxLayout;
-
-        QCheckBox  *releasedBox = new QCheckBox ("Liberado para Cliente");
-        releasedBox->setChecked(m_releasedFilter);
-        vBox->addWidget(releasedBox);
-        QCheckBox  *approvedBox = new QCheckBox ("Aprovado Cliente");
-        approvedBox->setChecked(m_approvedFilter);
-        vBox->addWidget(approvedBox);
-        QCheckBox  *approvedWithCommentsBox = new QCheckBox ("Aprovado Cliente c/ Ressalvas");
-        approvedWithCommentsBox->setChecked(m_approvedWithCommentsFilter);
-        vBox->addWidget(approvedWithCommentsBox);
-        QCheckBox  *reprovedBox = new QCheckBox ("Reprovado Cliente");
-        reprovedBox->setChecked(m_reprovedFilter);
-        vBox->addWidget(reprovedBox);
-
-        QGroupBox *groupBox = new QGroupBox();
-        groupBox->setLayout(vBox);
-
-        formLayout->addRow(groupBox);
-
-        QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
-        formLayout->addRow(buttonBox);
-        connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
-        connect(buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
-
-        if(dialog.exec() != QDialog::Accepted)
-            return;
-
-        m_releasedFilter = releasedBox->isChecked();
-        m_approvedFilter = approvedBox->isChecked();
-        m_approvedWithCommentsFilter = approvedWithCommentsBox->isChecked();
-        m_reprovedFilter = reprovedBox->isChecked();
-
-        reloadTableData();
-    }
-
-    if(index == 8) {
-        QDialog dialog;
-        dialog.setWindowTitle("Filtros");
-        dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-        dialog.setMinimumWidth(800);
-
-        QFormLayout* formLayout = new QFormLayout();
-        dialog.setLayout(formLayout);
-
-        QTreeWidget* treeWidget = getTree();
-        formLayout->addRow(treeWidget);
-
-        QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
-        formLayout->addRow(buttonBox);
-        connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
-        connect(buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
-
-        if(dialog.exec() != QDialog::Accepted)
-            return;
-
-        visitTree(treeWidget);
     }
 }
 
@@ -469,7 +298,7 @@ void MainWindow::orderTableByColumn(int index)
 
     bool crescent = m_orderByCrescent[index];
 
-    std::sort(m_logEntries.begin(), m_logEntries.end(), [index, crescent](const LogEntry& a, const LogEntry& b) {
+    std::sort(m_tableData.begin(), m_tableData.end(), [this, index, crescent](const LogEntry& a, const LogEntry& b) {
         switch(index) {
         case col_Obra:
             if(crescent)
@@ -640,8 +469,33 @@ void MainWindow::openMenu()
         checkBoxesCol.push_back(checkBox);
     }
 
-    QGroupBox *groupBoxCol = new QGroupBox();
-    groupBoxCol->setLayout(vBoxCol);
+    QGroupBox *groupBoxVisibleCol = new QGroupBox("Exibir Colounas");
+    groupBoxVisibleCol->setLayout(vBoxCol);
+
+
+    QVBoxLayout *vBoxEvents = new QVBoxLayout;
+
+    QCheckBox  *releasedBox = new QCheckBox ("Liberado para Cliente");
+    releasedBox->setChecked(m_releasedFilter);
+    vBoxEvents->addWidget(releasedBox);
+    QCheckBox  *approvedBox = new QCheckBox ("Aprovado Cliente");
+    approvedBox->setChecked(m_approvedFilter);
+    vBoxEvents->addWidget(approvedBox);
+    QCheckBox  *approvedWithCommentsBox = new QCheckBox ("Aprovado Cliente c/ Ressalvas");
+    approvedWithCommentsBox->setChecked(m_approvedWithCommentsFilter);
+    vBoxEvents->addWidget(approvedWithCommentsBox);
+    QCheckBox  *reprovedBox = new QCheckBox ("Reprovado Cliente");
+    reprovedBox->setChecked(m_reprovedFilter);
+    vBoxEvents->addWidget(reprovedBox);
+
+    QGroupBox *groupBoxEvents = new QGroupBox("Exibir Eventos");
+    groupBoxEvents->setLayout(vBoxEvents);
+
+    QTreeWidget* treeWidget = getTree();
+    QVBoxLayout *vBoxPaths = new QVBoxLayout;
+    vBoxPaths->addWidget(treeWidget);
+    QGroupBox *groupBoxPaths = new QGroupBox("Filtro por caminhos");
+    groupBoxPaths->setLayout(vBoxPaths);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
 
@@ -649,9 +503,10 @@ void MainWindow::openMenu()
     connect(buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
 
     int row = 0;
-    gridLayout->addWidget(new QLabel("Exibir colunas:"), row++, 0);
-    gridLayout->addWidget(groupBoxCol, row++, 0);
-    gridLayout->addWidget(buttonBox, row++, 0);
+    gridLayout->addWidget(groupBoxVisibleCol, row, 0);
+    gridLayout->addWidget(groupBoxPaths, row++, 1, 2, 1);
+    gridLayout->addWidget(groupBoxEvents, row++, 0);
+    gridLayout->addWidget(buttonBox, row++, 1);
 
 
     if(dialog.exec() != QDialog::Accepted)
@@ -662,6 +517,15 @@ void MainWindow::openMenu()
         m_showColumns[i] = show;
         m_table->setColumnHidden(i, !show);
     }
+
+    m_releasedFilter = releasedBox->isChecked();
+    m_approvedFilter = approvedBox->isChecked();
+    m_approvedWithCommentsFilter = approvedWithCommentsBox->isChecked();
+    m_reprovedFilter = reprovedBox->isChecked();
+
+    visitTree(treeWidget);//tirar o popuatela de dentro
+
+    reloadTableData();
     populateTable();
 }
 
@@ -699,9 +563,8 @@ void MainWindow::clearFilters()
         m_orderByCrescent.push_back(true);
     }
 
-    orderTableByColumn(col_Data);
-
     reloadTableData();
+    orderTableByColumn(col_Data);
     populateTable();
 }
 

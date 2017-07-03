@@ -23,7 +23,7 @@ public:
     QString caminho;
     QString arquivo;
     QString data;
-    int epochTime;
+    qint64 epochTime;
 };
 
 #endif // LOGENTRY_H

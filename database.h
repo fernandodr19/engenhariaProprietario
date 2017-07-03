@@ -24,6 +24,7 @@ public:
     QVector<bool> getShowColumns() { return m_showColumns; }
     QVector<LogEntry> getLogEntries() { return m_logEntries; }
 
+    void setFilesPath(QString path) { m_path = path; }
     void setHistoricFilter(bool historicFilter) { m_historicFilter = historicFilter; }
     void setReleasedFilter(bool releasedFilter) { m_releasedFilter = releasedFilter; }
     void setApprovedFitler(bool approvedFitler) { m_approvedFilter = approvedFitler; }
@@ -37,6 +38,10 @@ public:
 private:
     void loadLogEntry();
     void saveLogEntry();
+    void loadNewLogEntry();
+    QStringList getFiles();
+    qint64 getEpochTime(QString date, QString time);
+    QString getDate(QString fileName);
 
     //FILTERS
     bool m_historicFilter; //historico/atual
@@ -49,6 +54,8 @@ private:
     QVector<bool> m_showColumns;
 
     QVector<LogEntry> m_logEntries;
+    QStringList m_readDatesList;
+    QString m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";//vai ser uma variavel
 };
 
 #endif // DATABASE_H
