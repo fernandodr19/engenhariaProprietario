@@ -22,6 +22,7 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QApplication>
+#include <QCalendarWidget>
 
 #include "logentry.h"
 #include "database.h"
@@ -56,6 +57,9 @@ MainWindow::MainWindow(QWidget *parent)
         openMenu();
     });
 
+    m_showRegistredDates = new QPushButton("Exibir datas cadastradas");
+    connect(m_showRegistredDates, &QPushButton::clicked, [this](){ showRegistredDates(); });
+
     m_clearFilters = new QPushButton("Limpar filtros");
     connect(m_clearFilters, &QPushButton::clicked, [this](bool) {
         clearFilters();
@@ -73,17 +77,12 @@ MainWindow::MainWindow(QWidget *parent)
         populateTable();
     });
 
-    m_headersName = QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"});
+    m_headersName = QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"});
 
-    m_table = new QTableWidget(0, 11);
+    m_table = new QTableWidget(0, 10);
     m_table->setHorizontalHeaderLabels(m_headersName);
     m_table->horizontalHeader()->setSectionsMovable(true);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    connect(m_table->horizontalHeader(), &QHeaderView::sectionClicked, [this](int index) {
-        orderTableByColumn(index);
-        populateTable();
-    });
-
     connect(m_table->horizontalHeader(), &QHeaderView::sectionPressed, [this]() {
         connect(m_table->horizontalHeader(), &QHeaderView::sectionMoved, [this](int, int from, int to) {
             m_headersOrder.move(from, to);
@@ -92,6 +91,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     int row = 0;
     int col = 0;
+    gridLayout->addWidget(m_showRegistredDates, row, col++);
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
     gridLayout->addWidget(m_clearFilters, row, col++);
@@ -103,7 +103,6 @@ MainWindow::MainWindow(QWidget *parent)
     updateFromDatabase();
     reloadTableData();
     initializeTable();
-//    m_table->setSortingEnabled(true);
 }
 
 MainWindow::~MainWindow()
@@ -118,14 +117,14 @@ void MainWindow::updateFromDatabase()
     m_filesPath = g_database->getFilesPath();
     m_readDates = g_database->getReadDates();
     m_historicFilter = g_database->getHistoricFilter();
+    if(m_historicFilter)
+        m_filterCategory->setCurrentIndex(1);
+    else
+        m_filterCategory->setCurrentIndex(0);
     m_releasedFilter = g_database->getReleasedFilter();
     m_approvedFilter = g_database->getApprovedFilter();
     m_approvedWithCommentsFilter = g_database->getApprovedWithCommentsFilter();
     m_reprovedFilter = g_database->getReprovedFilter();
-
-    for(int i = 0; i < m_headersName.size(); i++) {
-        m_orderByCrescent.push_back(true);
-    }
 
     m_showColumns = g_database->getShowColumns();
 
@@ -211,19 +210,21 @@ void MainWindow::initializeTable()
     for(int i = 0; i < m_showColumns.size(); i++)
         m_table->setColumnHidden(i, !m_showColumns[i]);
 
-    orderTableByColumn(col_Data);
     updateHeadersOrder();
-
     populateTable();
+
+    m_table->setSortingEnabled(true);
+    m_table->sortByColumn(col_DataHora, Qt::AscendingOrder);
 }
 
 void MainWindow::populateTable()
 {
     m_table->clearContents();
     m_table->setRowCount(0);
+    m_table->setSortingEnabled(false);
 
     int row = 0;
-    for(LogEntry logEntry : m_tableData) {
+    for(const LogEntry& logEntry : m_tableData) {
         if(containsUndesirablePath(logEntry.caminho))
             continue;
 
@@ -250,14 +251,16 @@ void MainWindow::populateTable()
             m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
         if(m_showColumns[++col])
             m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.hora));
+        if(m_showColumns[++col]) {
+            QTableWidgetItem *dataHora = new QTableWidgetItem();
+            dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
+            dataHora->setData(Qt::UserRole, logEntry.hora);
+            m_table->setItem(row, col, dataHora);
+        }
         if(m_showColumns[++col])
             m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
         if(m_showColumns[++col])
             m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.data));
         paintRow(logEntry.epochTime, row);
         row++;
 
@@ -267,6 +270,7 @@ void MainWindow::populateTable()
         updateFromTable(row, column);
     });
     m_table->resizeColumnsToContents();
+    m_table->setSortingEnabled(true);
 }
 
 void MainWindow::paintRow(qint64 epochTime, int row)
@@ -293,70 +297,6 @@ void MainWindow::paintRow(qint64 epochTime, int row)
                 m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
         }
     }
-}
-
-void MainWindow::orderTableByColumn(int index)
-{
-    if(index > m_orderByCrescent.size() - 1)
-        return;
-
-    bool crescent = m_orderByCrescent[index];
-
-    std::sort(m_tableData.begin(), m_tableData.end(), [this, index, crescent](const LogEntry& a, const LogEntry& b) {
-        switch(index) {
-        case col_Obra:
-            if(crescent)
-                return a.obra < b.obra;
-            else
-                return a.obra > b.obra;
-        case col_Evento:
-            if(crescent)
-                return a.evento < b.evento;
-            else
-                return a.evento > b.evento;
-        case col_Tipo:
-            if(crescent)
-                return a.tipo < b.tipo;
-            else
-                return a.tipo > b.tipo;
-        case col_Nome:
-            if(crescent)
-                return a.nome < b.nome;
-            else
-                return a.nome > b.nome;
-        case col_Usuario:
-            if(crescent)
-                return a.usuario < b.usuario;
-            else
-                return a.usuario > b.usuario;
-        case col_Empresa:
-            if(crescent)
-                return a.empresa < b.empresa;
-            else
-                return a.empresa > b.empresa;
-        case col_Hora:
-            if(crescent)
-                return a.epochTime < b.epochTime;
-            else
-                return a.epochTime > b.epochTime;
-        case col_Caminho:
-            if(crescent)
-                return a.caminho < b.caminho;
-            else
-                return a.caminho > b.caminho;
-        case col_Arquivo:
-            if(crescent)
-                return a.arquivo < b.arquivo;
-            else
-                return a.arquivo > b.arquivo;
-        case col_Data:
-            if(crescent)
-                return a.epochTime < b.epochTime;
-            else
-                return a.epochTime > b.epochTime;
-        }
-    });
-    m_orderByCrescent[index] = !m_orderByCrescent[index];
 }
 
 void MainWindow::updateHeadersOrder()
@@ -390,7 +330,7 @@ QTreeWidget* MainWindow::getTree()
     treeWidget->setHeaderHidden(true);
 
     connect(treeWidget, &QTreeWidget::itemClicked, [this](QTreeWidgetItem *item){
-        for (int i = 0; i < item->childCount(); ++i) {
+        for(int i = 0; i < item->childCount(); ++i) {
             setEnabled(item->child(i));
         }
 
@@ -414,7 +354,7 @@ QTreeWidget* MainWindow::getTree()
         tokens.removeOne("");
 
         // add root folder as top level item if treeWidget doesn't already have it
-        if (treeWidget->findItems(tokens[0], Qt::MatchFixedString).isEmpty()) {
+        if(treeWidget->findItems(tokens[0], Qt::MatchFixedString).isEmpty()) {
             topLevelItem = new QTreeWidgetItem;
             topLevelItem->setFlags(topLevelItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
             topLevelItem->setText(0, tokens[0]);
@@ -427,18 +367,18 @@ QTreeWidget* MainWindow::getTree()
         QTreeWidgetItem *parentItem = topLevelItem;
 
         // iterate through non-root directories (file name comes after)
-        for (int i = 1; i < tokens.size() - 1; ++i) {
+        for(int i = 1; i < tokens.size() - 1; ++i) {
             // iterate through children of parentItem to see if this directory exists
             bool thisDirectoryExists = false;
-            for (int j = 0; j < parentItem->childCount(); ++j) {
-                if (tokens[i] == parentItem->child(j)->text(0)) {
+            for(int j = 0; j < parentItem->childCount(); ++j) {
+                if(tokens[i] == parentItem->child(j)->text(0)) {
                     thisDirectoryExists = true;
                     parentItem = parentItem->child(j);
                     break;
                 }
             }
 
-            if (!thisDirectoryExists) {
+            if(!thisDirectoryExists) {
                 parentItem = new QTreeWidgetItem(parentItem);
                 parentItem->setFlags(parentItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
                 parentItem->setText(0, tokens[i]);
@@ -523,7 +463,6 @@ void MainWindow::openMenu()
     gridLayout->addLayout(hPath, row++, 0, 1, 2);
     gridLayout->addWidget(buttonBox, row++, 1);
 
-
     if(dialog.exec() != QDialog::Accepted)
         return;
 
@@ -538,7 +477,7 @@ void MainWindow::openMenu()
     m_approvedWithCommentsFilter = approvedWithCommentsBox->isChecked();
     m_reprovedFilter = reprovedBox->isChecked();
 
-    visitTree(treeWidget);//checkHere tirar o popuatela de dentro
+    visitTree(treeWidget);
 
     QString filesPathText = filesPath->text();
     if(m_filesPath != filesPathText) {
@@ -581,15 +520,46 @@ void MainWindow::clearFilters()
 
     m_undesirablePaths.clear();
 
+    reloadTableData();
+    populateTable();
 
-    m_orderByCrescent.clear();
-    for(int i = 0; i < m_headersName.size(); i++) {
-        m_orderByCrescent.push_back(true);
+    m_table->sortByColumn(col_DataHora, Qt::AscendingOrder);
+}
+
+void MainWindow::showRegistredDates()
+{
+    QDialog dialog;
+    dialog.setWindowTitle("Datas cadastradas");
+    dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+    QFormLayout *formLayout = new QFormLayout;
+    dialog.setLayout(formLayout);
+
+    QTableWidget *dates = new QTableWidget(0, 1);
+    dates->setHorizontalHeaderLabels({"Datas cadastradas"});
+    for(int i = 0; i < m_readDates.size(); i++) {
+        dates->insertRow(i);
+        dates->setItem(i, 0, new QTableWidgetItem(getDate(m_readDates[i])));
     }
 
-    reloadTableData();
-    orderTableByColumn(col_Data);
-    populateTable();
+    formLayout->addWidget(dates);
+
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok, Qt::Horizontal, this);
+
+    connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
+
+    if(dialog.exec() != QDialog::Accepted)
+        return;
+}
+
+QString MainWindow::getDate(QString fileName)
+{
+    fileName = fileName.mid(fileName.lastIndexOf("_") + 1, 8);
+
+    QString year = fileName.mid(0, 4);
+    QString month = fileName.mid(4, 2);
+    QString day = fileName.mid(6, 2);
+    return day + "/" + month + "/" + year;
 }
 
 void MainWindow::visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *item){
@@ -615,8 +585,6 @@ void MainWindow::updateUndesirabelPaths(const QVector<QTreeWidgetItem*>& items)
         path = getPath(item);
         m_undesirablePaths.push_back(path);
     }
-
-    populateTable();
 }
 
 bool MainWindow::containsUndesirablePath(const QString &path)
@@ -674,7 +642,7 @@ void MainWindow::updateFromTable(int row, int col)
     int indexDatabase = -1;
     for(int i = 0; i < m_tableData.size(); i++) {
         QString nome = m_table->item(row, col_Nome)->text();
-        QString hora = m_table->item(row, col_Hora)->text();
+        QString hora = m_table->item(row, col_DataHora)->data(Qt::UserRole).toString();
         if(m_tableData[i].nome == nome && m_tableData[i].hora == hora)
             indexTableData = i;
 

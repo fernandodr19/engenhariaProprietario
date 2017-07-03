@@ -14,10 +14,9 @@ enum col {
     col_Nome,
     col_Usuario,
     col_Empresa,
-    col_Hora,
+    col_DataHora,
     col_Caminho,
     col_Arquivo,
-    col_Data,
 };
 
 class QComboBox;
@@ -38,6 +37,7 @@ public:
 
 private slots:
     void clearFilters();
+    void showRegistredDates();
 
 private:
     void updateFromDatabase();
@@ -60,9 +60,10 @@ private:
     void setEnabled(QTreeWidgetItem *item);
     void updateHeadersOrder();
     void resetHeadersOrder();
-    void orderTableByColumn(int index);
     void updateFromTable(int row, int col);
+    QString getDate(QString fileName);
 
+    QPushButton *m_showRegistredDates;
     QPushButton *m_clearFilters;
     QPushButton *m_config;
     QComboBox *m_filterCategory;
@@ -79,7 +80,6 @@ private:
     QStringList m_undesirablePaths;
     QVector<bool> m_showColumns;
     QStringList m_headersOrder;
-    QVector<bool> m_orderByCrescent;
 
     QStringList m_headersName;
     QVector<LogEntry> m_tableData;

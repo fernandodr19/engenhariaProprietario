@@ -36,38 +36,38 @@ void Database::load()
     m_approvedWithCommentsFilter = g_settings->value("approvedWithCommentsFilter", false).toBool();
     m_reprovedFilter = g_settings->value("reprovedFilter", false).toBool();
 
-    QStringList m_headersName = {"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Hora", "Caminho", "Arquivos", "Data"};
+    QStringList headersName = {"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"};
 
     int size = g_settings->beginReadArray("showColumns");
-    for (int i = 0; i < size; ++i) {
+    for(int i = 0; i < size; ++i) {
         g_settings->setArrayIndex(i);
         bool show = g_settings->value("showColumn", true).toBool();
         m_showColumns.push_back(show);
     }
     g_settings->endArray();
 
-    if(m_showColumns.size() != m_headersName.size()) {
+    if(m_showColumns.size() != headersName.size()) {
         m_showColumns.clear();
-        for(int i = 0; i < m_headersName.size(); i++)
+        for(int i = 0; i < headersName.size(); i++)
             m_showColumns.push_back(true);
     }
 
     size = g_settings->beginReadArray("headersOrder");
-    for (int i = 0; i < size; ++i) {
+    for(int i = 0; i < size; ++i) {
         g_settings->setArrayIndex(i);
         QString header = g_settings->value("headerOrder", i).toString();
         m_headersOrder.push_back(header);
     }
     g_settings->endArray();
 
-    if(m_headersOrder.size() != m_headersName.size()) {
+    if(m_headersOrder.size() != headersName.size()) {
         m_headersOrder.clear();
-        for(int i = 0; i < m_headersName.size(); i++)
-            m_headersOrder.push_back(m_headersName[i]);
+        for(int i = 0; i < headersName.size(); i++)
+            m_headersOrder.push_back(headersName[i]);
     }
 
     size = g_settings->beginReadArray("undesirablePaths");
-    for (int i = 0; i < size; ++i) {
+    for(int i = 0; i < size; ++i) {
         g_settings->setArrayIndex(i);
         QString path = g_settings->value("undesirablePath").toString();
         m_undesirablePaths.push_back(path);
@@ -75,7 +75,7 @@ void Database::load()
     g_settings->endArray();
 
     size = g_settings->beginReadArray("readDatesList");
-    for (int i = 0; i < size; ++i) {
+    for(int i = 0; i < size; ++i) {
         g_settings->setArrayIndex(i);
         QString path = g_settings->value("readDate").toString();
         m_readDatesList.push_back(path);
@@ -129,7 +129,7 @@ void Database::save()
 void Database::loadLogEntry()
 {
     int size = g_settings->beginReadArray("logEntries");
-    for (int i = 0; i < size; ++i) {
+    for(int i = 0; i < size; ++i) {
         g_settings->setArrayIndex(i);
         LogEntry logEntry;
         logEntry.feito = g_settings->value("feito", false).toBool();
