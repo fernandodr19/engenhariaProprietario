@@ -37,7 +37,8 @@ public:
     void setShowColumns(QVector<bool> showColumns) { m_showColumns = showColumns; }
     void setLogEntries(QVector<LogEntry> logEntries) { m_logEntries = logEntries; }
 
-    void loadNewLogEntry();
+    void reloadLogEntries();
+    void loadNewLogEntries();
 private:
     void loadLogEntry();
     void saveLogEntry();

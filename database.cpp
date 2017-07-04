@@ -147,7 +147,7 @@ void Database::loadLogEntry()
     }
     g_settings->endArray();
 
-    loadNewLogEntry();
+    loadNewLogEntries();
 
     std::sort(m_logEntries.begin(), m_logEntries.end(), [this](const LogEntry& a, const LogEntry& b) {
         return a.epochTime < b.epochTime;
@@ -176,7 +176,7 @@ void Database::saveLogEntry()
     g_settings->endArray();
 }
 
-void Database::loadNewLogEntry()
+void Database::loadNewLogEntries()
 {
     for(QString fileName : getFiles()) {
         QFile file(m_filesPath + "\\" + fileName);
@@ -209,7 +209,9 @@ void Database::loadNewLogEntry()
             if(logEntry.evento == "Aprovado Cliente" ||
                     logEntry.evento == "Liberado para Cliente" ||
                     logEntry.evento == "Reprovado Cliente" ||
-                    logEntry.evento == "Aprovado Cliente c/ Ressalvas") {
+                    logEntry.evento == "Aprovado Cliente c/ Ressalvas" ||
+                    logEntry.evento == "Transferindo para Versão" ||
+                    logEntry.evento == "Lista de Documentos") {
                 m_logEntries.push_back(logEntry);
             }
         }
@@ -272,4 +274,15 @@ QString Database::getDate(QString fileName)
     QString month = fileName.mid(4, 2);
     QString day = fileName.mid(6, 2);
     return day + "/" + month + "/" + year;
+}
+
+void Database::reloadLogEntries()
+{
+    m_logEntries.clear();
+    m_readDatesList.clear();
+    loadNewLogEntries();
+
+    std::sort(m_logEntries.begin(), m_logEntries.end(), [this](const LogEntry& a, const LogEntry& b) {
+        return a.epochTime < b.epochTime;
+    });
 }

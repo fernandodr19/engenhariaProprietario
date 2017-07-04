@@ -38,6 +38,7 @@ public:
 private slots:
     void clearFilters();
     void showRegistredDates();
+    void reloadDatabase();
 
 private:
     void updateFromDatabase();
@@ -64,6 +65,7 @@ private:
     QString getDate(QString fileName);
 
     QPushButton *m_showRegistredDates;
+    QPushButton *m_reloadDatabase;
     QPushButton *m_clearFilters;
     QPushButton *m_config;
     QComboBox *m_filterCategory;

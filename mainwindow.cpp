@@ -60,6 +60,11 @@ MainWindow::MainWindow(QWidget *parent)
     m_showRegistredDates = new QPushButton("Exibir datas cadastradas");
     connect(m_showRegistredDates, &QPushButton::clicked, [this](){ showRegistredDates(); });
 
+    m_reloadDatabase = new QPushButton("Recarregar o banco de dados");
+    connect(m_reloadDatabase, &QPushButton::clicked, [this](){
+        reloadDatabase();
+    });
+
     m_clearFilters = new QPushButton("Limpar filtros");
     connect(m_clearFilters, &QPushButton::clicked, [this](bool) {
         clearFilters();
@@ -83,15 +88,14 @@ MainWindow::MainWindow(QWidget *parent)
     m_table->setHorizontalHeaderLabels(m_headersName);
     m_table->horizontalHeader()->setSectionsMovable(true);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    connect(m_table->horizontalHeader(), &QHeaderView::sectionPressed, [this]() {
-        connect(m_table->horizontalHeader(), &QHeaderView::sectionMoved, [this](int, int from, int to) {
-            m_headersOrder.move(from, to);
-        });
+    connect(m_table->horizontalHeader(), &QHeaderView::sectionMoved, [this](int, int from, int to) {
+        m_headersOrder.move(from, to);
     });
 
     int row = 0;
     int col = 0;
     gridLayout->addWidget(m_showRegistredDates, row, col++);
+    gridLayout->addWidget(m_reloadDatabase, row, col++);
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
     gridLayout->addWidget(m_clearFilters, row, col++);
@@ -308,7 +312,9 @@ void MainWindow::updateHeadersOrder()
     for(int i = 0; i < names.size(); i++) {
         int index = names.indexOf(m_headersOrder[i]);
         if(index != i) {
+            m_table->horizontalHeader()->blockSignals(true);
             m_table->horizontalHeader()->moveSection(index, i);
+            m_table->horizontalHeader()->blockSignals(false);
             names.move(index, i);
         }
     }
@@ -316,10 +322,15 @@ void MainWindow::updateHeadersOrder()
 
 void MainWindow::resetHeadersOrder()//checkHere
 {
-    //    for(int i = 0; i < m_headersName->size(); i++) {
-    //        int index = m_headersOrder.indexOf(m_headersName->at(i));
+    //    QStringList names;
+    //    for(int i = 0; i < m_headersOrder.size(); i++)
+    //        names.push_back(m_headersOrder[i]);
+
+    //    for(int i = 0; i < names.size(); i++) {
+    //        int index = names.indexOf(m_headersName[i]);
     //        if(index != i) {
     //            m_table->horizontalHeader()->moveSection(index, i);
+    //            names.move(index, i);
     //        }
     //    }
 }
@@ -483,7 +494,7 @@ void MainWindow::openMenu()
     if(m_filesPath != filesPathText) {
         g_database->setFilesPath(filesPathText);
         m_filesPath = filesPathText;
-        g_database->loadNewLogEntry();
+        g_database->loadNewLogEntries();
         m_logEntries = g_database->getLogEntries();
         m_readDates = g_database->getReadDates();
     }
@@ -531,8 +542,8 @@ void MainWindow::showRegistredDates()
     QDialog dialog;
     dialog.setWindowTitle("Datas cadastradas");
     dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    QFormLayout *formLayout = new QFormLayout;
-    dialog.setLayout(formLayout);
+    QGridLayout *gridLayout = new QGridLayout;
+    dialog.setLayout(gridLayout);
 
     std::sort(m_readDates.begin(), m_readDates.end(), [this](QString a, QString b) {
         return a < b;
@@ -540,20 +551,35 @@ void MainWindow::showRegistredDates()
 
     QTableWidget *dates = new QTableWidget(0, 1);
     dates->setHorizontalHeaderLabels({"Datas cadastradas"});
+    dates->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     for(int i = 0; i < m_readDates.size(); i++) {
         dates->insertRow(i);
         dates->setItem(i, 0, new QTableWidgetItem(getDate(m_readDates[i])));
     }
 
-    formLayout->addWidget(dates);
-
-
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok, Qt::Horizontal, this);
-
     connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
+
+    gridLayout->addWidget(dates, 0, 0);
+    gridLayout->addWidget(buttonBox, 1, 0);
 
     if(dialog.exec() != QDialog::Accepted)
         return;
+}
+
+void MainWindow::reloadDatabase()
+{
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "Recarregar banco de dados", "Tem certeza de que deseja recarregar o banco de dados?\n(Isso pode levar alguns minutos)", QMessageBox::Yes|QMessageBox::No);
+
+    if(reply != QMessageBox::Yes)
+        return;
+
+    g_database->reloadLogEntries();
+    m_logEntries = g_database->getLogEntries();
+    m_readDates = g_database->getReadDates();
+    reloadTableData();
+    populateTable();
 }
 
 QString MainWindow::getDate(QString fileName)
