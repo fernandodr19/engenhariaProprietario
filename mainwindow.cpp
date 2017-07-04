@@ -534,6 +534,10 @@ void MainWindow::showRegistredDates()
     QFormLayout *formLayout = new QFormLayout;
     dialog.setLayout(formLayout);
 
+    std::sort(m_readDates.begin(), m_readDates.end(), [this](QString a, QString b) {
+        return a < b;
+    });
+
     QTableWidget *dates = new QTableWidget(0, 1);
     dates->setHorizontalHeaderLabels({"Datas cadastradas"});
     for(int i = 0; i < m_readDates.size(); i++) {

@@ -148,6 +148,10 @@ void Database::loadLogEntry()
     g_settings->endArray();
 
     loadNewLogEntry();
+
+    std::sort(m_logEntries.begin(), m_logEntries.end(), [this](const LogEntry& a, const LogEntry& b) {
+        return a.epochTime < b.epochTime;
+    });
 }
 
 void Database::saveLogEntry()
