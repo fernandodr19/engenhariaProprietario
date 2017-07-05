@@ -59,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_showRegistredDates = new QPushButton("Exibir datas cadastradas");
     connect(m_showRegistredDates, &QPushButton::clicked, [this](){ showRegistredDates(); });
 
-    m_reloadDatabase = new QPushButton("Recarregar o banco de dados");
+    m_reloadDatabase = new QPushButton("Atualizar o banco de dados");
     connect(m_reloadDatabase, &QPushButton::clicked, [this](){
         reloadDatabase();
     });
@@ -586,7 +586,7 @@ void MainWindow::showRegistredDates()
 void MainWindow::reloadDatabase()
 {
     QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(this, "Recarregar banco de dados", "Tem certeza de que deseja recarregar o banco de dados?\n(Isso pode levar alguns minutos)", QMessageBox::Yes|QMessageBox::No);
+    reply = QMessageBox::question(this, "Atualizar banco de dados", "Tem certeza de que deseja atualizar o banco de dados?\n(Isso pode levar alguns minutos)", QMessageBox::Yes|QMessageBox::No);
 
     if(reply != QMessageBox::Yes)
         return;

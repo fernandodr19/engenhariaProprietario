@@ -153,9 +153,10 @@ void Database::saveActiveFilesCheckStatus()
     g_settings->beginWriteArray("activeFiles");
     int i = 0;
     for(auto logEntry = m_activeFiles.begin(); logEntry != m_activeFiles.end();) {
-        g_settings->setArrayIndex(i++);
-        if(logEntry.value().feito)
+        if(logEntry.value().feito) {
+            g_settings->setArrayIndex(i++);
             g_settings->setValue("name", logEntry.value().nome);
+        }
         logEntry++;
     }
     g_settings->endArray();
@@ -239,6 +240,7 @@ QString Database::getDate(QString fileName)
 
 void Database::reloadLogEntries()
 {
+    saveActiveFilesCheckStatus();
     loadLogEntriesFromFile();
     createFilesFromLogEntries();
     loadActiveFilesCheckedState();
