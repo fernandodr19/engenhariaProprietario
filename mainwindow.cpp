@@ -78,7 +78,7 @@ MainWindow::MainWindow(QWidget *parent)
             m_historicFilter = true;
         else
             m_historicFilter = false;
-        reloadTableData();
+        m_table->setColumnHidden(col_Feito, m_historicFilter);
         populateTable();
     });
 
@@ -105,7 +105,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     g_database->load();
     updateFromDatabase();
-    reloadTableData();
     initializeTable();
 }
 
@@ -120,11 +119,8 @@ void MainWindow::updateFromDatabase()
 {
     m_filesPath = g_database->getFilesPath();
     m_readDates = g_database->getReadDates();
-    m_historicFilter = g_database->getHistoricFilter();
-    if(m_historicFilter)
-        m_filterCategory->setCurrentIndex(1);
-    else
-        m_filterCategory->setCurrentIndex(0);
+    m_historicFilter = false;
+    m_filterCategory->setCurrentIndex(0);
     m_releasedFilter = g_database->getReleasedFilter();
     m_approvedFilter = g_database->getApprovedFilter();
     m_approvedWithCommentsFilter = g_database->getApprovedWithCommentsFilter();
@@ -147,7 +143,8 @@ void MainWindow::updateFromDatabase()
     }
 
     m_undesirablePaths = g_database->getUndesirablePaths();
-    m_logEntries = g_database->getLogEntries();
+    m_activeFiles = g_database->getActiveFiles();
+    m_historicFiles = g_database->getHistoricFiles();
 }
 
 void MainWindow::updateToDatabase()
@@ -161,27 +158,7 @@ void MainWindow::updateToDatabase()
     g_database->setShowColumns(m_showColumns);
     g_database->setHeadersOrder(m_headersOrder);
     g_database->setUndesirablePaths(m_undesirablePaths);
-    g_database->setLogEntries(m_logEntries);
-}
-
-void MainWindow::reloadTableData()
-{
-    m_tableData.clear();
-
-    QStringList eventos = getEventos();
-    for(LogEntry logEntry : m_logEntries) {
-        QString key = logEntry.nome;
-        QString evento = logEntry.evento;
-
-        int index = indexOfFile(key);
-        if(!m_historicFilter) {
-            if(index != -1)
-                m_tableData.removeAt(index);
-        }
-
-        if(eventos.contains(evento))
-            m_tableData.push_back(logEntry);
-    }
+//    g_database->setLogEntries(m_files.values());
 }
 
 QStringList MainWindow::getEventos()
@@ -197,16 +174,6 @@ QStringList MainWindow::getEventos()
         eventos.push_back("Reprovado Cliente");
     return eventos;
 
-}
-
-int MainWindow::indexOfFile(QString key)
-{
-    for(int i = 0; i < m_tableData.size(); i++) {
-        LogEntry logEntry = m_tableData[i];
-        if(logEntry.nome == key)
-            return i;
-    }
-    return -1;
 }
 
 void MainWindow::initializeTable()
@@ -227,51 +194,111 @@ void MainWindow::populateTable()
     m_table->setRowCount(0);
     m_table->setSortingEnabled(false);
 
+    QStringList events = getEventos();
     int row = 0;
-    for(const LogEntry& logEntry : m_tableData) {
-        if(containsUndesirablePath(logEntry.caminho))
-            continue;
+    if(!m_historicFilter) {
+        for(const LogEntry& logEntry : m_activeFiles) {
+            if(containsUndesirablePath(logEntry.caminho))
+                continue;
 
-        m_table->insertRow(row);
-        int col = -1;
-        if(m_showColumns[++col]) {
-            QTableWidgetItem *item = new QTableWidgetItem(1);
-            item->data(Qt::CheckStateRole);
-            if(!logEntry.feito)
-                item->setCheckState(Qt::Unchecked);
-            else
-                item->setCheckState(Qt::Checked);
-            m_table->setItem(row, col, item);
-        }
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
-        if(m_showColumns[++col]) {
-            QTableWidgetItem *dataHora = new QTableWidgetItem();
-            dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
-            dataHora->setData(Qt::UserRole, logEntry.hora);
-            m_table->setItem(row, col, dataHora);
-        }
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
-        if(m_showColumns[++col])
-            m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
-        paintRow(logEntry.epochTime, row);
-        row++;
+            if(!events.contains(logEntry.evento))
+                continue;
 
+            m_table->insertRow(row);
+            int col = -1;
+            if(m_showColumns[++col]) {
+                QTableWidgetItem *item = new QTableWidgetItem(1);
+                item->data(Qt::CheckStateRole);
+                if(!logEntry.feito)
+                    item->setCheckState(Qt::Unchecked);
+                else
+                    item->setCheckState(Qt::Checked);
+                m_table->setItem(row, col, item);
+            }
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
+            if(m_showColumns[++col]) {
+                QTableWidgetItem *dataHora = new QTableWidgetItem();
+                dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
+                dataHora->setData(Qt::UserRole, logEntry.hora);
+                m_table->setItem(row, col, dataHora);
+            }
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
+            paintRow(logEntry.epochTime, row);
+            row++;
+        }
+    } else {
+        for(const LogEntry& logEntry : m_historicFiles) {
+            if(containsUndesirablePath(logEntry.caminho))
+                continue;
+
+            if(!events.contains(logEntry.evento))
+                continue;
+
+            m_table->insertRow(row);
+            int col = -1;
+            if(m_showColumns[++col]) {
+                QTableWidgetItem *item = new QTableWidgetItem(1);
+                item->data(Qt::CheckStateRole);
+                if(!logEntry.feito)
+                    item->setCheckState(Qt::Unchecked);
+                else
+                    item->setCheckState(Qt::Checked);
+                m_table->setItem(row, col, item);
+            }
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
+            if(m_showColumns[++col]) {
+                QTableWidgetItem *dataHora = new QTableWidgetItem();
+                dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
+                dataHora->setData(Qt::UserRole, logEntry.hora);
+                m_table->setItem(row, col, dataHora);
+            }
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
+            if(m_showColumns[++col])
+                m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
+            paintRow(logEntry.epochTime, row);
+            row++;
+        }
     }
 
     connect(m_table, &QTableWidget::cellClicked, [this](int row, int column) {
-        updateFromTable(row, column);
+        if(column != 0)
+            return;
+
+        QTableWidgetItem *item = m_table->item(row, column);
+        QString file = m_table->item(row, col_Nome)->text();
+        bool checked;
+        if(item->checkState() == Qt::Checked)
+            checked = true;
+        else
+            checked = false;
+
+        g_database->updateCheckStatus(file, checked);
     });
     m_table->resizeColumnsToContents();
     m_table->setSortingEnabled(true);
@@ -349,8 +376,11 @@ QTreeWidget* MainWindow::getTree()
     QTreeWidgetItem *topLevelItem;
 
     QStringList singlePaths;
-    for(LogEntry logEntry : m_logEntries) {
+    for(LogEntry logEntry : m_activeFiles) {
         QString path = logEntry.caminho;
+
+        if(path == "\\")
+            continue;
 
         if((path.length() - path.lastIndexOf(".")) == 4)
             path = path.mid(0, path.lastIndexOf("\\"));
@@ -494,12 +524,11 @@ void MainWindow::openMenu()
     if(m_filesPath != filesPathText) {
         g_database->setFilesPath(filesPathText);
         m_filesPath = filesPathText;
-        g_database->loadNewLogEntries();
-        m_logEntries = g_database->getLogEntries();
+        g_database->loadLogEntriesFromFile();
+        m_activeFiles = g_database->getActiveFiles();
+        m_historicFiles = g_database->getHistoricFiles();
         m_readDates = g_database->getReadDates();
     }
-
-    reloadTableData();
     populateTable();
 }
 
@@ -531,7 +560,6 @@ void MainWindow::clearFilters()
 
     m_undesirablePaths.clear();
 
-    reloadTableData();
     populateTable();
 
     m_table->sortByColumn(col_DataHora, Qt::AscendingOrder);
@@ -576,9 +604,9 @@ void MainWindow::reloadDatabase()
         return;
 
     g_database->reloadLogEntries();
-    m_logEntries = g_database->getLogEntries();
+    m_activeFiles = g_database->getActiveFiles();
+    m_historicFiles = g_database->getHistoricFiles();
     m_readDates = g_database->getReadDates();
-    reloadTableData();
     populateTable();
 }
 
@@ -661,40 +689,3 @@ void MainWindow::setEnabled(QTreeWidgetItem *item)
     else
         item->setFlags(item->flags() | Qt::ItemIsEnabled);
 }
-
-void MainWindow::updateFromTable(int row, int col)
-{
-    if(col != 0)
-        return;
-
-    QTableWidgetItem *item = m_table->item(row, col);
-    int indexTableData = -1;
-    int indexDatabase = -1;
-    for(int i = 0; i < m_tableData.size(); i++) {
-        QString nome = m_table->item(row, col_Nome)->text();
-        QString hora = m_table->item(row, col_DataHora)->data(Qt::UserRole).toString();
-        if(m_tableData[i].nome == nome && m_tableData[i].hora == hora)
-            indexTableData = i;
-
-        if(m_logEntries[i].nome == nome && m_logEntries[i].hora == hora)
-            indexDatabase = i;
-    }
-
-    if(indexTableData == -1)
-        return;
-
-    if(item->checkState() == Qt::Checked)
-        m_tableData[indexTableData].feito = true;
-    else
-        m_tableData[indexTableData].feito = false;
-
-    if(indexDatabase == -1)
-        return;
-
-    if(item->checkState() == Qt::Checked)
-        m_logEntries[indexDatabase].feito = true;
-    else
-        m_logEntries[indexDatabase].feito = false;
-
-}
-

@@ -45,7 +45,6 @@ private:
     void updateToDatabase();
     void initializeTable();
     void reloadTableData();
-    int indexOfFile(QString key);
     void populateTable();
     QStringList getEventos();
     QTreeWidget* getTree();
@@ -61,7 +60,7 @@ private:
     void setEnabled(QTreeWidgetItem *item);
     void updateHeadersOrder();
     void resetHeadersOrder();
-    void updateFromTable(int row, int col);
+    void updateCheckStatus(int row, int col);
     QString getDate(QString fileName);
 
     QPushButton *m_showRegistredDates;
@@ -84,8 +83,8 @@ private:
     QStringList m_headersOrder;
 
     QStringList m_headersName;
-    QVector<LogEntry> m_tableData;
-    QVector<LogEntry> m_logEntries;
+    QMap<QString, LogEntry> m_activeFiles;
+    QVector<LogEntry> m_historicFiles;
 };
 
 #endif // MAINWINDOW_H

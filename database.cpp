@@ -11,8 +11,6 @@ QSettings *g_settings = nullptr;
 
 Database::Database()
 {
-//    m_path = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";//vai ser uma variavel
-
     QCoreApplication::setOrganizationName("Fluxo Engenharia");
     QCoreApplication::setOrganizationDomain("fluxoengenharia.com.br");
     QCoreApplication::setApplicationVersion("1.0.0");
@@ -28,9 +26,7 @@ Database::~Database()
 
 void Database::load()
 {
-    m_filesPath = g_settings->value("filesPath").toString();
-
-    m_historicFilter = g_settings->value("historicFilter", false).toBool();
+    m_filesPath = g_settings->value("filesPath", "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados").toString();
     m_releasedFilter = g_settings->value("releasedFilter", true).toBool();
     m_approvedFilter = g_settings->value("approvedFilter", false).toBool();
     m_approvedWithCommentsFilter = g_settings->value("approvedWithCommentsFilter", false).toBool();
@@ -82,14 +78,14 @@ void Database::load()
     }
     g_settings->endArray();
 
-    loadLogEntry();
+    loadLogEntriesFromFile();
+    createFilesFromLogEntries();
+    loadActiveFilesCheckedState();
 }
 
 void Database::save()
 {
     g_settings->setValue("filesPath", m_filesPath);
-
-    g_settings->setValue("historicFilter", m_historicFilter);
     g_settings->setValue("releasedFilter", m_releasedFilter);
     g_settings->setValue("approvedFilter", m_approvedFilter);
     g_settings->setValue("approvedWithCommentsFilter", m_approvedWithCommentsFilter);
@@ -123,62 +119,63 @@ void Database::save()
     }
     g_settings->endArray();
 
-    saveLogEntry();
+    saveActiveFilesCheckStatus();
 }
 
-void Database::loadLogEntry()
+void Database::loadActiveFilesCheckedState()
 {
-    int size = g_settings->beginReadArray("logEntries");
+    int size = g_settings->beginReadArray("activeFiles");
     for(int i = 0; i < size; ++i) {
         g_settings->setArrayIndex(i);
-        LogEntry logEntry;
-        logEntry.feito = g_settings->value("feito", false).toBool();
-        logEntry.obra = g_settings->value("obra").toString();
-        logEntry.evento = g_settings->value("evento").toString();
-        logEntry.tipo = g_settings->value("tipo").toString();
-        logEntry.nome = g_settings->value("nome").toString();
-        logEntry.usuario = g_settings->value("usuario").toString();
-        logEntry.empresa = g_settings->value("empresa").toString();
-        logEntry.hora = g_settings->value("hora").toString();
-        logEntry.caminho = g_settings->value("caminho").toString();
-        logEntry.data = g_settings->value("data").toString();
-        logEntry.epochTime = g_settings->value("epochTime").toULongLong();
-        m_logEntries.push_back(logEntry);
-    }
-    g_settings->endArray();
-
-    loadNewLogEntries();
-
-    std::sort(m_logEntries.begin(), m_logEntries.end(), [this](const LogEntry& a, const LogEntry& b) {
-        return a.epochTime < b.epochTime;
-    });
-}
-
-void Database::saveLogEntry()
-{
-    g_settings->beginWriteArray("logEntries");
-    for(int i = 0; i < m_logEntries.size(); ++i) {
-        g_settings->setArrayIndex(i);
-        LogEntry logEntry = m_logEntries[i];
-        g_settings->setValue("feito", logEntry.feito);
-        g_settings->setValue("obra", logEntry.obra);
-        g_settings->setValue("evento", logEntry.evento);
-        g_settings->setValue("tipo", logEntry.tipo);
-        g_settings->setValue("nome", logEntry.nome);
-        g_settings->setValue("usuario", logEntry.usuario);
-        g_settings->setValue("empresa", logEntry.empresa);
-        g_settings->setValue("hora", logEntry.hora);
-        g_settings->setValue("caminho", logEntry.caminho);
-        g_settings->setValue("arquivo", logEntry.arquivo);
-        g_settings->setValue("data", logEntry.data);
-        g_settings->setValue("epochTime", logEntry.epochTime);
+        QString name = g_settings->value("name").toString();
+        m_activeFiles[name].feito = true;
     }
     g_settings->endArray();
 }
 
-void Database::loadNewLogEntries()
+void Database::updateFiles()
 {
-    for(QString fileName : getFiles()) {
+    for(const LogEntry& logEntry : m_logEntries) {
+        QString key = logEntry.nome;
+        QString evento = logEntry.evento;
+        if(evento == "Liberado para Cliente" ||
+                evento == "Aprovado Cliente" ||
+                evento == "Aprovado Cliente c/ Ressalvas" ||
+                evento == "Reprovado Cliente") {
+            m_historicFiles.push_back(logEntry);
+        }
+        m_activeFiles[key] = logEntry;
+    }
+
+    for(auto it = m_activeFiles.begin(); it != m_activeFiles.end();) {
+        if(it.value().evento != "Liberado para Cliente" &&
+                it.value().evento != "Aprovado Cliente" &&
+                it.value().evento != "Aprovado Cliente c/ Ressalvas" &&
+                it.value().evento != "Reprovado Cliente")
+            it = m_activeFiles.erase(it);
+        else
+            it++;
+    }
+}
+
+void Database::saveActiveFilesCheckStatus()
+{
+    g_settings->beginWriteArray("activeFiles");
+    int i = 0;
+    for(auto logEntry = m_activeFiles.begin(); logEntry != m_activeFiles.end();) {
+        g_settings->setArrayIndex(i++);
+        if(logEntry.value().feito)
+            g_settings->setValue("name", logEntry.value().nome);
+        logEntry++;
+    }
+    g_settings->endArray();
+}
+
+void Database::loadLogEntriesFromFile()
+{
+    m_logEntries.clear();
+    m_readDatesList.clear();
+    for(const QString& fileName : getLogFiles()) {
         QFile file(m_filesPath + "\\" + fileName);
         if(!file.open(QIODevice::ReadOnly)) {
             QMessageBox::information(0, "error", file.errorString());
@@ -217,9 +214,13 @@ void Database::loadNewLogEntries()
         }
         file.close();
     }
+
+    std::sort(m_logEntries.begin(), m_logEntries.end(), [this](const LogEntry& a, const LogEntry& b) {
+        return a.epochTime < b.epochTime;
+    });
 }
 
-QStringList Database::getFiles()
+QStringList Database::getLogFiles()
 {
     QDir dir(m_filesPath);
     QStringList entryList = dir.entryList();
@@ -235,6 +236,7 @@ QStringList Database::getFiles()
                 if(dateFile == dateCandidate)
                     contains = true;
             }
+
             if(m_readDatesList.contains(dateCandidate))
                 contains = true;
 
@@ -280,9 +282,26 @@ void Database::reloadLogEntries()
 {
     m_logEntries.clear();
     m_readDatesList.clear();
-    loadNewLogEntries();
+    m_activeFiles.clear();
+    m_historicFiles.clear();
+    loadLogEntriesFromFile();
 
-    std::sort(m_logEntries.begin(), m_logEntries.end(), [this](const LogEntry& a, const LogEntry& b) {
-        return a.epochTime < b.epochTime;
-    });
+    createFilesFromLogEntries();
+}
+
+void Database::loadHistoricFiles()
+{
+//aqui eu teria que carregar tudo dnv
+}
+
+void Database::createFilesFromLogEntries()
+{
+    m_activeFiles.clear();
+    m_historicFiles.clear();
+    updateFiles();
+}
+
+void Database::updateCheckStatus(QString file, bool checked)
+{
+    m_activeFiles[file].feito = checked;
 }

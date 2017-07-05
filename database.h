@@ -2,6 +2,7 @@
 #define DATABASE_H
 
 #include <QVector>
+#include <QMap>
 
 class LogEntry;
 
@@ -24,7 +25,8 @@ public:
     QStringList getUndesirablePaths() { return m_undesirablePaths; }
     QStringList getHeadersOrder() { return m_headersOrder; }
     QVector<bool> getShowColumns() { return m_showColumns; }
-    QVector<LogEntry> getLogEntries() { return m_logEntries; }
+    QMap<QString, LogEntry> getActiveFiles() { return m_activeFiles; }
+    QVector<LogEntry> getHistoricFiles() { return m_historicFiles; }
 
     void setFilesPath(QString path) { m_filesPath = path; }
     void setHistoricFilter(bool historicFilter) { m_historicFilter = historicFilter; }
@@ -35,14 +37,17 @@ public:
     void setUndesirablePaths(QStringList undesirablePaths) { m_undesirablePaths = undesirablePaths; }
     void setHeadersOrder(QStringList headersOrder) { m_headersOrder = headersOrder; }
     void setShowColumns(QVector<bool> showColumns) { m_showColumns = showColumns; }
-    void setLogEntries(QVector<LogEntry> logEntries) { m_logEntries = logEntries; }
 
     void reloadLogEntries();
-    void loadNewLogEntries();
+    void loadHistoricFiles();
+    void loadLogEntriesFromFile();
+    void updateCheckStatus(QString file, bool checked);
 private:
-    void loadLogEntry();
-    void saveLogEntry();
-    QStringList getFiles();
+    void loadActiveFilesCheckedState();
+    void saveActiveFilesCheckStatus();
+    void createFilesFromLogEntries();
+    void updateFiles();
+    QStringList getLogFiles();
     qint64 getEpochTime(QString date, QString time);
     QString getDate(QString fileName);
 
@@ -56,9 +61,11 @@ private:
     QStringList m_headersOrder;
     QVector<bool> m_showColumns;
 
-    QVector<LogEntry> m_logEntries;
+    QList<LogEntry> m_logEntries;
     QStringList m_readDatesList;
-    QString m_filesPath = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados";//vai ser uma variavel
+    QString m_filesPath;
+    QMap<QString, LogEntry> m_activeFiles;
+    QVector<LogEntry> m_historicFiles;
 };
 
 #endif // DATABASE_H
