@@ -37,7 +37,6 @@ public:
     void setShowColumns(const QVector<bool>& showColumns) { m_showColumns = showColumns; }
 
     void reloadLogEntries();
-    void loadHistoricFiles();
     void loadLogEntriesFromFile();
     void updateCheckStatus(QString file, bool checked);
 

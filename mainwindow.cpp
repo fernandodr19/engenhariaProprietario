@@ -165,7 +165,6 @@ void MainWindow::updateToDatabase()
 
     g_database->setHeadersOrder(m_headersOrder);
     g_database->setUndesirablePaths(m_undesirablePaths);
-//    g_database->setLogEntries(m_files.values());
 }
 
 QStringList MainWindow::getEventos()
@@ -382,7 +381,7 @@ QTreeWidget* MainWindow::getTree()
     for(const LogEntry& logEntry : g_database->getActiveFiles()) {
         QString path = logEntry.caminho;
 
-        if(path == "\\")
+        if(path == "" || path == "\\")
             continue;
 
         if((path.length() - path.lastIndexOf(".")) == 4)
@@ -396,6 +395,9 @@ QTreeWidget* MainWindow::getTree()
     for(const QString& path : singlePaths) {
         QStringList tokens = path.split("\\");
         tokens.removeOne("");
+
+        if(tokens.isEmpty())
+            continue;
 
         // add root folder as top level item if treeWidget doesn't already have it
         if(treeWidget->findItems(tokens[0], Qt::MatchFixedString).isEmpty()) {

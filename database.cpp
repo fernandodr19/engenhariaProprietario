@@ -270,18 +270,9 @@ QString Database::getDate(QString fileName)
 
 void Database::reloadLogEntries()
 {
-    m_logEntries.clear();
-    m_readDatesList.clear();
-    m_activeFiles.clear();
-    m_historicFiles.clear();
     loadLogEntriesFromFile();
-
     createFilesFromLogEntries();
-}
-
-void Database::loadHistoricFiles()
-{
-//aqui eu teria que carregar tudo dnv
+    loadActiveFilesCheckedState();
 }
 
 void Database::createFilesFromLogEntries()
