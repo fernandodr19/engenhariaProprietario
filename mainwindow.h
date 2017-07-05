@@ -67,7 +67,6 @@ private:
     QPushButton *m_config;
     QComboBox *m_filterCategory;
     QTableWidget *m_table;
-    QString m_filesPath;
     QStringList m_readDates;
 
     //FILTERS

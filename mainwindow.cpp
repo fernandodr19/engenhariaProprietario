@@ -123,7 +123,6 @@ void MainWindow::closeEvent(QCloseEvent *)
 
 void MainWindow::updateFromDatabase()
 {
-    m_filesPath = g_database->getFilesPath();
     m_readDates = g_database->getReadDates();
     m_historicFilter = false;
     m_filterCategory->setCurrentIndex(0);
@@ -151,7 +150,6 @@ void MainWindow::updateFromDatabase()
 
 void MainWindow::updateToDatabase()
 {
-    g_database->setFilesPath(m_filesPath);
     g_database->setHistoricFilter(m_historicFilter);
     g_database->setReleasedFilter(m_releasedFilter);
     g_database->setApprovedFilter(m_approvedFilter);
@@ -491,7 +489,7 @@ void MainWindow::openMenu()
     QGroupBox *groupBoxPaths = new QGroupBox("Filtro por caminhos");
     groupBoxPaths->setLayout(vBoxPaths);
 
-    QLineEdit *filesPath = new QLineEdit(m_filesPath);
+    QLineEdit *filesPath = new QLineEdit(g_database->getFilesPath());
     QHBoxLayout *hPath = new QHBoxLayout;
     hPath->addWidget(new QLabel("Caminho da pasta com os arquivos "), 0);
     hPath->addWidget(filesPath);
@@ -525,9 +523,8 @@ void MainWindow::openMenu()
     visitTree(treeWidget);
 
     QString filesPathText = filesPath->text();
-    if(m_filesPath != filesPathText) {
+    if(g_database->getFilesPath() != filesPathText) {
         g_database->setFilesPath(filesPathText);
-        m_filesPath = filesPathText;
         g_database->loadLogEntriesFromFile();
         m_readDates = g_database->getReadDates();
     }
@@ -573,7 +570,7 @@ void MainWindow::showRegistredDates()
     QGridLayout *gridLayout = new QGridLayout;
     dialog.setLayout(gridLayout);
 
-    std::sort(m_readDates.begin(), m_readDates.end(), [this](QString a, QString b) {
+    std::sort(m_readDates.begin(), m_readDates.end(), [this](const QString& a, const QString& b) {
         return a < b;
     });
 
