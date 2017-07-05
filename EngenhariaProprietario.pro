@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui printsupport
 CONFIG += c++14
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -30,12 +30,14 @@ SOURCES += \
         mainwindow.cpp \
     database.cpp \
     logentry.cpp \
-    statisticsview.cpp
+    statisticsview.cpp \
+    thirdparty/qcustomplot/qcustomplot.cpp
 
 HEADERS += \
         mainwindow.h \
     database.h \
     logentry.h \
-    statisticsview.h
+    statisticsview.h \
+    thirdparty/qcustomplot/qcustomplot.h
 
 win32:RC_FILE = resources.rc
