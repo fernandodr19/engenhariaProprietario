@@ -126,8 +126,8 @@ void Database::loadActiveFilesCheckedState()
 void Database::updateFiles()
 {
     for(const LogEntry& logEntry : m_logEntries) {
-        QString key = logEntry.nome;
-        QString evento = logEntry.evento;
+        const QString& key = logEntry.nome;
+        const QString& evento = logEntry.evento;
         if(evento == "Liberado para Cliente" ||
                 evento == "Aprovado Cliente" ||
                 evento == "Aprovado Cliente c/ Ressalvas" ||
@@ -137,15 +137,15 @@ void Database::updateFiles()
         m_activeFiles[key] = logEntry;
     }
 
-    for(auto it = m_activeFiles.begin(); it != m_activeFiles.end();) {
-        if(it.value().evento != "Liberado para Cliente" &&
-                it.value().evento != "Aprovado Cliente" &&
-                it.value().evento != "Aprovado Cliente c/ Ressalvas" &&
-                it.value().evento != "Reprovado Cliente")
-            it = m_activeFiles.erase(it);
-        else
-            it++;
-    }
+//    for(auto it = m_activeFiles.begin(); it != m_activeFiles.end();) {
+//        if(it.value().evento != "Liberado para Cliente" &&
+//                it.value().evento != "Aprovado Cliente" &&
+//                it.value().evento != "Aprovado Cliente c/ Ressalvas" &&
+//                it.value().evento != "Reprovado Cliente")
+//            it = m_activeFiles.erase(it);
+//        else
+//            it++;
+//    }
 }
 
 void Database::saveActiveFilesCheckStatus()
