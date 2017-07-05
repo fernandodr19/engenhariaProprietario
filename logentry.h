@@ -10,7 +10,8 @@ public:
     LogEntry();
 
 //    void save(QSettings *settings);
-//    LogEntry load(QSettings *settings);
+    void load(const QString& _data, const QStringList& fields);
+    static qint64 getEpochTime(const QString& date, const QString& time);
 
     bool feito;
     QString obra;

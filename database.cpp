@@ -181,18 +181,7 @@ void Database::loadLogEntriesFromFile()
             QString line = in.readLine();
             QStringList fields = line.split("\t");
             LogEntry logEntry;
-            logEntry.feito = false;
-            logEntry.obra = fields[0];
-            logEntry.evento = fields[1];
-            logEntry.tipo = fields[2];
-            logEntry.nome = fields[3];
-            logEntry.usuario = fields[4];
-            logEntry.empresa = fields[5];
-            logEntry.hora = fields[6];
-            logEntry.caminho = fields[7];
-            logEntry.arquivo = fields[8];
-            logEntry.data = data;
-            logEntry.epochTime = getEpochTime(data, logEntry.hora);
+            logEntry.load(data, fields);
             if(logEntry.evento == "Aprovado Cliente" ||
                     logEntry.evento == "Liberado para Cliente" ||
                     logEntry.evento == "Reprovado Cliente" ||
@@ -216,12 +205,11 @@ QStringList Database::getLogFiles()
     QStringList entryList = dir.entryList();
 
     QStringList filesList;
-    bool contains = false;
-    for(QString candidate : entryList) {
-        contains = false;
+    for(const QString& candidate : entryList) {
         if(candidate.endsWith(".txt")) {
+            bool contains = false;
             QString dateCandidate = candidate.mid(candidate.lastIndexOf("_") + 1, 8);
-            for(QString file : filesList) {
+            for(const QString& file : filesList) {
                 QString dateFile = file.mid(file.lastIndexOf("_") + 1, 8);
                 if(dateFile == dateCandidate)
                     contains = true;
@@ -237,25 +225,6 @@ QStringList Database::getLogFiles()
         }
     }
     return filesList;
-}
-
-qint64 Database::getEpochTime(const QString& date, const QString& time)
-{
-    if(date.length() < 10 || time.length() < 8)
-        return -1;
-
-    QStringList splitedDate = date.split("/");
-    int year = splitedDate[2].toInt();
-    int month = splitedDate[1].toInt();
-    int day = splitedDate[0].toInt();
-
-    QStringList splitedTime = time.split(":");
-    int hour = splitedTime[0].toInt();
-    int minute = splitedTime[1].toInt();
-    int second = splitedTime[2].toInt();
-
-    QDateTime dateTime(QDate(year, month, day), QTime(hour, minute, second));
-    return dateTime.toMSecsSinceEpoch();
 }
 
 QString Database::getDate(QString fileName)

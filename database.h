@@ -46,7 +46,6 @@ private:
     void createFilesFromLogEntries();
     void updateFiles();
     QStringList getLogFiles();
-    qint64 getEpochTime(const QString& date, const QString& time);
     QString getDate(QString fileName);
 
     //FILTERS
