@@ -75,7 +75,6 @@ private:
     bool m_approvedFilter;
     bool m_approvedWithCommentsFilter;
     bool m_reprovedFilter;
-    QStringList m_undesirablePaths;
     QStringList m_headersOrder;
 
     QStringList m_headersName;

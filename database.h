@@ -36,6 +36,8 @@ public:
     void setHeadersOrder(const QStringList& headersOrder) { m_headersOrder = headersOrder; }
     void setShowColumns(const QVector<bool>& showColumns) { m_showColumns = showColumns; }
 
+    void clearUndesirablePaths() { m_undesirablePaths.clear(); }
+
     void reloadLogEntries();
     void loadLogEntriesFromFile();
     void updateCheckStatus(QString file, bool checked);

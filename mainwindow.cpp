@@ -123,9 +123,7 @@ void MainWindow::closeEvent(QCloseEvent *)
 
 void MainWindow::updateFromDatabase()
 {
-    m_readDates = g_database->getReadDates();
     m_historicFilter = false;
-    m_filterCategory->setCurrentIndex(0);
     m_releasedFilter = g_database->getReleasedFilter();
     m_approvedFilter = g_database->getApprovedFilter();
     m_approvedWithCommentsFilter = g_database->getApprovedWithCommentsFilter();
@@ -136,16 +134,9 @@ void MainWindow::updateFromDatabase()
         bool showColumn = showColumns.value(i);
         m_table->setColumnHidden(i, !showColumn);
     }
+    m_table->setColumnHidden(0, false);
 
     m_headersOrder = g_database->getHeadersOrder();
-
-    if(m_headersOrder.size() != m_headersName.size()) {
-        m_headersOrder.clear();
-        for(int i = 0; i < m_headersName.size(); i++)
-            m_headersOrder.push_back(m_headersName[i]);
-    }
-
-    m_undesirablePaths = g_database->getUndesirablePaths();
 }
 
 void MainWindow::updateToDatabase()
@@ -162,7 +153,6 @@ void MainWindow::updateToDatabase()
     g_database->setShowColumns(showColumns);
 
     g_database->setHeadersOrder(m_headersOrder);
-    g_database->setUndesirablePaths(m_undesirablePaths);
 }
 
 QStringList MainWindow::getEventos()
@@ -347,19 +337,17 @@ void MainWindow::updateHeadersOrder()
     }
 }
 
-void MainWindow::resetHeadersOrder()//checkHere
+void MainWindow::resetHeadersOrder()
 {
-    //    QStringList names;
-    //    for(int i = 0; i < m_headersOrder.size(); i++)
-    //        names.push_back(m_headersOrder[i]);
-
-    //    for(int i = 0; i < names.size(); i++) {
-    //        int index = names.indexOf(m_headersName[i]);
-    //        if(index != i) {
-    //            m_table->horizontalHeader()->moveSection(index, i);
-    //            names.move(index, i);
-    //        }
-    //    }
+    for(int i = 0; i < m_headersName.size(); i++) {
+        int index = m_headersOrder.indexOf(m_headersName[i]);
+        if(index != i) {
+            m_table->horizontalHeader()->blockSignals(true);
+            m_table->horizontalHeader()->moveSection(index, i);
+            m_headersOrder.move(index, i);
+            m_table->horizontalHeader()->blockSignals(false);
+        }
+    }
 }
 
 QTreeWidget* MainWindow::getTree()
@@ -526,7 +514,6 @@ void MainWindow::openMenu()
     if(g_database->getFilesPath() != filesPathText) {
         g_database->setFilesPath(filesPathText);
         g_database->loadLogEntriesFromFile();
-        m_readDates = g_database->getReadDates();
     }
     populateTable();
 }
@@ -547,6 +534,8 @@ void MainWindow::clearFilters()
     for(int i = 0; i < m_headersName.size(); i++)
         m_headersOrder.push_back(m_headersName[i]);
 
+    g_database->setHeadersOrder(m_headersName);
+
     m_releasedFilter = true;
     m_approvedFilter = false;
     m_approvedWithCommentsFilter = false;
@@ -555,7 +544,7 @@ void MainWindow::clearFilters()
     for(int i = 0; i < m_table->columnCount(); i++)
         m_table->setColumnHidden(i, false);
 
-    m_undesirablePaths.clear();
+    g_database->clearUndesirablePaths();
 
     populateTable();
 
@@ -570,16 +559,18 @@ void MainWindow::showRegistredDates()
     QGridLayout *gridLayout = new QGridLayout;
     dialog.setLayout(gridLayout);
 
-    std::sort(m_readDates.begin(), m_readDates.end(), [this](const QString& a, const QString& b) {
+    QStringList readDates = g_database->getReadDates();
+    std::sort(readDates.begin(), readDates.end(), [this](const QString& a, const QString& b) {
         return a < b;
     });
 
     QTableWidget *dates = new QTableWidget(0, 1);
     dates->setHorizontalHeaderLabels({"Datas cadastradas"});
     dates->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    for(int i = 0; i < m_readDates.size(); i++) {
+
+    for(int i = 0; i < readDates.size(); i++) {
         dates->insertRow(i);
-        dates->setItem(i, 0, new QTableWidgetItem(getDate(m_readDates[i])));
+        dates->setItem(i, 0, new QTableWidgetItem(getDate(readDates[i])));
     }
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok, Qt::Horizontal, this);
@@ -601,7 +592,6 @@ void MainWindow::reloadDatabase()
         return;
 
     g_database->reloadLogEntries();
-    m_readDates = g_database->getReadDates();
     populateTable();
 }
 
@@ -632,17 +622,17 @@ void MainWindow::visitTree(QTreeWidget *tree) {
 
 void MainWindow::updateUndesirabelPaths(const QVector<QTreeWidgetItem*>& items)
 {
-    QString path;
-    m_undesirablePaths.clear();
+    QStringList undesirablePaths;
     for(QTreeWidgetItem* item : items) {
-        path = getPath(item);
-        m_undesirablePaths.push_back(path);
+        QString path = getPath(item);
+        undesirablePaths.push_back(path);
     }
+    g_database->setUndesirablePaths(undesirablePaths);
 }
 
 bool MainWindow::containsUndesirablePath(const QString &path)
 {
-    for(const QString& undesirablePath : m_undesirablePaths)
+    for(const QString& undesirablePath : g_database->getUndesirablePaths())
         if(path.contains(undesirablePath))
             return true;
     return false;
@@ -650,7 +640,7 @@ bool MainWindow::containsUndesirablePath(const QString &path)
 
 bool MainWindow::isUndesirablePath(const QString& path)
 {
-    for(const QString& undesirablePath : m_undesirablePaths)
+    for(const QString& undesirablePath : g_database->getUndesirablePaths())
         if(path == undesirablePath)
             return true;
     return false;
