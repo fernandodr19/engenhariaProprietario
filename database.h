@@ -3,14 +3,12 @@
 
 #include <QVector>
 #include <QMap>
-
-class LogEntry;
+#include "logentry.h"
 
 class Database
 {
 public:
     Database();
-    ~Database();
 
     void load();
     void save();
@@ -31,17 +29,18 @@ public:
     void setFilesPath(QString path) { m_filesPath = path; }
     void setHistoricFilter(bool historicFilter) { m_historicFilter = historicFilter; }
     void setReleasedFilter(bool releasedFilter) { m_releasedFilter = releasedFilter; }
-    void setApprovedFitler(bool approvedFitler) { m_approvedFilter = approvedFitler; }
+    void setApprovedFilter(bool approvedFitler) { m_approvedFilter = approvedFitler; }
     void setApprovedWithCommentsFilter(bool approvedWithComments) { m_approvedWithCommentsFilter = approvedWithComments; }
     void setReprovedFilter(bool reprovedFilter) { m_reprovedFilter = reprovedFilter; }
-    void setUndesirablePaths(QStringList undesirablePaths) { m_undesirablePaths = undesirablePaths; }
-    void setHeadersOrder(QStringList headersOrder) { m_headersOrder = headersOrder; }
-    void setShowColumns(QVector<bool> showColumns) { m_showColumns = showColumns; }
+    void setUndesirablePaths(const QStringList& undesirablePaths) { m_undesirablePaths = undesirablePaths; }
+    void setHeadersOrder(const QStringList& headersOrder) { m_headersOrder = headersOrder; }
+    void setShowColumns(const QVector<bool>& showColumns) { m_showColumns = showColumns; }
 
     void reloadLogEntries();
     void loadHistoricFiles();
     void loadLogEntriesFromFile();
     void updateCheckStatus(QString file, bool checked);
+
 private:
     void loadActiveFilesCheckedState();
     void saveActiveFilesCheckStatus();

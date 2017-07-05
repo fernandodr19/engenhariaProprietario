@@ -23,13 +23,12 @@
 #include <QSettings>
 #include <QApplication>
 #include <QCalendarWidget>
-
-#include "logentry.h"
+#include "statisticsview.h"
 #include "database.h"
 
 #include <QDebug>
 
-Database *g_database = new Database();
+extern Database *g_database;
 
 MainWindow::MainWindow(QWidget *parent)
     : QScrollArea(parent)
@@ -92,10 +91,20 @@ MainWindow::MainWindow(QWidget *parent)
         m_headersOrder.move(from, to);
     });
 
+    QPushButton *statisticsButton = new QPushButton("Estatísticas");
+    connect(statisticsButton, &QPushButton::clicked, []() {
+        QDialog dialog;
+        QGridLayout *layout = new QGridLayout();
+        layout->addWidget(new StatisticsView());
+        dialog.setLayout(layout);
+        dialog.exec();
+    });
+
     int row = 0;
     int col = 0;
     gridLayout->addWidget(m_showRegistredDates, row, col++);
     gridLayout->addWidget(m_reloadDatabase, row, col++);
+    gridLayout->addWidget(statisticsButton, row, col++);
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
     gridLayout->addWidget(m_clearFilters, row, col++);
@@ -103,16 +112,13 @@ MainWindow::MainWindow(QWidget *parent)
     gridLayout->addWidget(m_filterCategory, row++, col++);
     gridLayout->addWidget(m_table, row++, 0, 1, col);
 
-    g_database->load();
     updateFromDatabase();
     initializeTable();
 }
 
-MainWindow::~MainWindow()
+void MainWindow::closeEvent(QCloseEvent *)
 {
     updateToDatabase();
-    g_database->save();
-    delete g_database;
 }
 
 void MainWindow::updateFromDatabase()
@@ -152,7 +158,7 @@ void MainWindow::updateToDatabase()
     g_database->setFilesPath(m_filesPath);
     g_database->setHistoricFilter(m_historicFilter);
     g_database->setReleasedFilter(m_releasedFilter);
-    g_database->setApprovedFitler(m_approvedFilter);
+    g_database->setApprovedFilter(m_approvedFilter);
     g_database->setApprovedWithCommentsFilter(m_approvedWithCommentsFilter);
     g_database->setReprovedFilter(m_reprovedFilter);
     g_database->setShowColumns(m_showColumns);
@@ -173,7 +179,6 @@ QStringList MainWindow::getEventos()
     if(m_reprovedFilter)
         eventos.push_back("Reprovado Cliente");
     return eventos;
-
 }
 
 void MainWindow::initializeTable()
@@ -376,7 +381,7 @@ QTreeWidget* MainWindow::getTree()
     QTreeWidgetItem *topLevelItem;
 
     QStringList singlePaths;
-    for(LogEntry logEntry : m_activeFiles) {
+    for(const LogEntry& logEntry : m_activeFiles) {
         QString path = logEntry.caminho;
 
         if(path == "\\")
@@ -390,7 +395,7 @@ QTreeWidget* MainWindow::getTree()
     }
     std::sort(singlePaths.begin(), singlePaths.end());
 
-    for(QString path : singlePaths) {
+    for(const QString& path : singlePaths) {
         QStringList tokens = path.split("\\");
         tokens.removeOne("");
 

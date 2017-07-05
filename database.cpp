@@ -7,21 +7,11 @@
 #include <QDateTime>
 #include "logentry.h"
 
-QSettings *g_settings = nullptr;
+extern QSettings *g_settings;
 
 Database::Database()
 {
-    QCoreApplication::setOrganizationName("Fluxo Engenharia");
-    QCoreApplication::setOrganizationDomain("fluxoengenharia.com.br");
-    QCoreApplication::setApplicationVersion("1.0.0");
-    QCoreApplication::setApplicationName("Controle EP");
 
-    g_settings = new QSettings(QSettings::IniFormat, QSettings::UserScope, QApplication::organizationName(), QApplication::applicationName());
-}
-
-Database::~Database()
-{
-    delete g_settings;
 }
 
 void Database::load()

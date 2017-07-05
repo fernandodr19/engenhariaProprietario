@@ -33,7 +33,8 @@ class MainWindow : public QScrollArea
     Q_OBJECT
 public:
     MainWindow(QWidget *parent = 0);
-    ~MainWindow();
+
+    void closeEvent(QCloseEvent *event);
 
 private slots:
     void clearFilters();

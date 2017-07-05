@@ -29,11 +29,13 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
     database.cpp \
-    logentry.cpp
+    logentry.cpp \
+    statisticsview.cpp
 
 HEADERS += \
         mainwindow.h \
     database.h \
-    logentry.h
+    logentry.h \
+    statisticsview.h
 
 win32:RC_FILE = resources.rc
