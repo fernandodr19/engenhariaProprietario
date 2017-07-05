@@ -132,12 +132,10 @@ void MainWindow::updateFromDatabase()
     m_approvedWithCommentsFilter = g_database->getApprovedWithCommentsFilter();
     m_reprovedFilter = g_database->getReprovedFilter();
 
-    m_showColumns = g_database->getShowColumns();
-
-    if(m_showColumns.size() != m_headersName.size()) {
-        m_showColumns.clear();
-        for(int i = 0; i < m_headersName.size(); i++)
-            m_showColumns.push_back(true);
+    QVector<bool> showColumns = g_database->getShowColumns();
+    for(int i = 0; i < m_table->columnCount(); ++i) {
+        bool showColumn = showColumns.value(i);
+        m_table->setColumnHidden(i, !showColumn);
     }
 
     m_headersOrder = g_database->getHeadersOrder();
@@ -149,8 +147,6 @@ void MainWindow::updateFromDatabase()
     }
 
     m_undesirablePaths = g_database->getUndesirablePaths();
-    m_activeFiles = g_database->getActiveFiles();
-    m_historicFiles = g_database->getHistoricFiles();
 }
 
 void MainWindow::updateToDatabase()
@@ -161,7 +157,12 @@ void MainWindow::updateToDatabase()
     g_database->setApprovedFilter(m_approvedFilter);
     g_database->setApprovedWithCommentsFilter(m_approvedWithCommentsFilter);
     g_database->setReprovedFilter(m_reprovedFilter);
-    g_database->setShowColumns(m_showColumns);
+
+    QVector<bool> showColumns;
+    for(int i = 0; i < m_table->columnCount(); ++i)
+        showColumns.push_back(!m_table->isColumnHidden(i));
+    g_database->setShowColumns(showColumns);
+
     g_database->setHeadersOrder(m_headersOrder);
     g_database->setUndesirablePaths(m_undesirablePaths);
 //    g_database->setLogEntries(m_files.values());
@@ -183,9 +184,6 @@ QStringList MainWindow::getEventos()
 
 void MainWindow::initializeTable()
 {
-    for(int i = 0; i < m_showColumns.size(); i++)
-        m_table->setColumnHidden(i, !m_showColumns[i]);
-
     updateHeadersOrder();
     populateTable();
 
@@ -202,7 +200,7 @@ void MainWindow::populateTable()
     QStringList events = getEventos();
     int row = 0;
     if(!m_historicFilter) {
-        for(const LogEntry& logEntry : m_activeFiles) {
+        for(const LogEntry& logEntry : g_database->getActiveFiles()) {
             if(containsUndesirablePath(logEntry.caminho))
                 continue;
 
@@ -211,7 +209,7 @@ void MainWindow::populateTable()
 
             m_table->insertRow(row);
             int col = -1;
-            if(m_showColumns[++col]) {
+            if(!m_table->isColumnHidden(++col)) {
                 QTableWidgetItem *item = new QTableWidgetItem(1);
                 item->data(Qt::CheckStateRole);
                 if(!logEntry.feito)
@@ -220,33 +218,33 @@ void MainWindow::populateTable()
                     item->setCheckState(Qt::Checked);
                 m_table->setItem(row, col, item);
             }
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
-            if(m_showColumns[++col]) {
+            if(!m_table->isColumnHidden(++col)) {
                 QTableWidgetItem *dataHora = new QTableWidgetItem();
                 dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
                 dataHora->setData(Qt::UserRole, logEntry.hora);
                 m_table->setItem(row, col, dataHora);
             }
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
             paintRow(logEntry.epochTime, row);
             row++;
         }
     } else {
-        for(const LogEntry& logEntry : m_historicFiles) {
+        for(const LogEntry& logEntry : g_database->getHistoricFiles()) {
             if(containsUndesirablePath(logEntry.caminho))
                 continue;
 
@@ -255,7 +253,7 @@ void MainWindow::populateTable()
 
             m_table->insertRow(row);
             int col = -1;
-            if(m_showColumns[++col]) {
+            if(!m_table->isColumnHidden(++col)) {
                 QTableWidgetItem *item = new QTableWidgetItem(1);
                 item->data(Qt::CheckStateRole);
                 if(!logEntry.feito)
@@ -264,27 +262,27 @@ void MainWindow::populateTable()
                     item->setCheckState(Qt::Checked);
                 m_table->setItem(row, col, item);
             }
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
-            if(m_showColumns[++col]) {
+            if(!m_table->isColumnHidden(++col)) {
                 QTableWidgetItem *dataHora = new QTableWidgetItem();
                 dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
                 dataHora->setData(Qt::UserRole, logEntry.hora);
                 m_table->setItem(row, col, dataHora);
             }
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
-            if(m_showColumns[++col])
+            if(!m_table->isColumnHidden(++col))
                 m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
             paintRow(logEntry.epochTime, row);
             row++;
@@ -318,18 +316,18 @@ void MainWindow::paintRow(qint64 epochTime, int row)
     double delayedDays = diff/day;
 
     if(delayedDays > 7) {
-        for(int col = 1; col < m_headersName.size(); col++) {
-            if(m_showColumns[col])
+        for(int col = 1; col < m_table->columnCount(); col++) {
+            if(!m_table->isColumnHidden(col))
                 m_table->item(row, col)->setBackgroundColor(QColor(255, 50, 70));
         }
     } else if(delayedDays > 5) {
-        for(int col = 1; col < m_headersName.size(); col++) {
-            if(m_showColumns[col])
+        for(int col = 1; col < m_table->columnCount(); col++) {
+            if(!m_table->isColumnHidden(col))
                 m_table->item(row, col)->setBackgroundColor(QColor(255,165,0));
         }
     } else if(delayedDays > 3) {
-        for(int col = 1; col < m_headersName.size(); col++) {
-            if(m_showColumns[col])
+        for(int col = 1; col < m_table->columnCount(); col++) {
+            if(!m_table->isColumnHidden(col))
                 m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
         }
     }
@@ -381,7 +379,7 @@ QTreeWidget* MainWindow::getTree()
     QTreeWidgetItem *topLevelItem;
 
     QStringList singlePaths;
-    for(const LogEntry& logEntry : m_activeFiles) {
+    for(const LogEntry& logEntry : g_database->getActiveFiles()) {
         QString path = logEntry.caminho;
 
         if(path == "\\")
@@ -458,7 +456,7 @@ void MainWindow::openMenu()
     QVector<QCheckBox*> checkBoxesCol;
     for(int i = 0; i < m_headersName.size(); i++) {
         QCheckBox  *checkBox = new QCheckBox (m_headersName[i]);
-        checkBox->setChecked(m_showColumns[i]);
+        checkBox->setChecked(!m_table->isColumnHidden(i));
         vBoxCol->addWidget(checkBox);
         checkBoxesCol.push_back(checkBox);
     }
@@ -512,9 +510,8 @@ void MainWindow::openMenu()
     if(dialog.exec() != QDialog::Accepted)
         return;
 
-    for(int i = 0; i < m_showColumns.size(); i++) {
+    for(int i = 0; i < checkBoxesCol.size(); i++) {
         bool show = checkBoxesCol[i]->isChecked();
-        m_showColumns[i] = show;
         m_table->setColumnHidden(i, !show);
     }
 
@@ -530,8 +527,6 @@ void MainWindow::openMenu()
         g_database->setFilesPath(filesPathText);
         m_filesPath = filesPathText;
         g_database->loadLogEntriesFromFile();
-        m_activeFiles = g_database->getActiveFiles();
-        m_historicFiles = g_database->getHistoricFiles();
         m_readDates = g_database->getReadDates();
     }
     populateTable();
@@ -558,10 +553,8 @@ void MainWindow::clearFilters()
     m_approvedWithCommentsFilter = false;
     m_reprovedFilter = false;
 
-    for(int i = 0; i < m_showColumns.size(); i++) {
-        m_showColumns[i] = true;
+    for(int i = 0; i < m_table->columnCount(); i++)
         m_table->setColumnHidden(i, false);
-    }
 
     m_undesirablePaths.clear();
 
@@ -609,8 +602,6 @@ void MainWindow::reloadDatabase()
         return;
 
     g_database->reloadLogEntries();
-    m_activeFiles = g_database->getActiveFiles();
-    m_historicFiles = g_database->getHistoricFiles();
     m_readDates = g_database->getReadDates();
     populateTable();
 }

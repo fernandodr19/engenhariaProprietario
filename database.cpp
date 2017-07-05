@@ -239,7 +239,7 @@ QStringList Database::getLogFiles()
     return filesList;
 }
 
-qint64 Database::getEpochTime(QString date, QString time)
+qint64 Database::getEpochTime(const QString& date, const QString& time)
 {
     if(date.length() < 10 || time.length() < 8)
         return -1;

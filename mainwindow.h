@@ -4,8 +4,6 @@
 #include <QScrollArea>
 #include <QMap>
 
-
-
 enum col {
     col_Feito = 0,
     col_Obra,
@@ -26,7 +24,6 @@ class QPushButton;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QSettings;
-class LogEntry;
 
 class MainWindow : public QScrollArea
 {
@@ -80,12 +77,9 @@ private:
     bool m_approvedWithCommentsFilter;
     bool m_reprovedFilter;
     QStringList m_undesirablePaths;
-    QVector<bool> m_showColumns;
     QStringList m_headersOrder;
 
     QStringList m_headersName;
-    QMap<QString, LogEntry> m_activeFiles;
-    QVector<LogEntry> m_historicFiles;
 };
 
 #endif // MAINWINDOW_H

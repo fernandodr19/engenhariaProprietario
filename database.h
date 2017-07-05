@@ -23,10 +23,10 @@ public:
     QStringList getUndesirablePaths() { return m_undesirablePaths; }
     QStringList getHeadersOrder() { return m_headersOrder; }
     QVector<bool> getShowColumns() { return m_showColumns; }
-    QMap<QString, LogEntry> getActiveFiles() { return m_activeFiles; }
-    QVector<LogEntry> getHistoricFiles() { return m_historicFiles; }
+    const QMap<QString, LogEntry>& getActiveFiles() { return m_activeFiles; }
+    const QVector<LogEntry>& getHistoricFiles() { return m_historicFiles; }
 
-    void setFilesPath(QString path) { m_filesPath = path; }
+    void setFilesPath(const QString& path) { m_filesPath = path; }
     void setHistoricFilter(bool historicFilter) { m_historicFilter = historicFilter; }
     void setReleasedFilter(bool releasedFilter) { m_releasedFilter = releasedFilter; }
     void setApprovedFilter(bool approvedFitler) { m_approvedFilter = approvedFitler; }
@@ -47,7 +47,7 @@ private:
     void createFilesFromLogEntries();
     void updateFiles();
     QStringList getLogFiles();
-    qint64 getEpochTime(QString date, QString time);
+    qint64 getEpochTime(const QString& date, const QString& time);
     QString getDate(QString fileName);
 
     //FILTERS
