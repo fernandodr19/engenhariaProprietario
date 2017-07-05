@@ -605,7 +605,8 @@ QString MainWindow::getDate(QString fileName)
     return day + "/" + month + "/" + year;
 }
 
-void MainWindow::visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *item){
+void MainWindow::visitTree(QVector<QTreeWidgetItem*>& list, QTreeWidgetItem *item)
+{
     if(item->checkState(0) == Qt::Unchecked)
         list.push_back(item);
     for(int i=0;i<item->childCount(); ++i) {
@@ -613,7 +614,8 @@ void MainWindow::visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *ite
     }
 }
 
-void MainWindow::visitTree(QTreeWidget *tree) {
+void MainWindow::visitTree(QTreeWidget *tree)
+{
     QVector<QTreeWidgetItem*> uncheckdItems;
     for(int i=0;i<tree->topLevelItemCount();++i)
         visitTree(uncheckdItems, tree->topLevelItem(i));

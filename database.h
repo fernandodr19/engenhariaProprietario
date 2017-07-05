@@ -40,7 +40,7 @@ public:
 
     void reloadLogEntries();
     void loadLogEntriesFromFile();
-    void updateCheckStatus(QString file, bool checked);
+    void updateCheckStatus(const QString& file, bool checked);
 
 private:
     void loadActiveFilesCheckedState();

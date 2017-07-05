@@ -231,7 +231,6 @@ QStringList Database::getLogFiles()
 QString Database::getDate(QString fileName)
 {
     fileName = fileName.mid(fileName.lastIndexOf("_") + 1, 8);
-
     QString year = fileName.mid(0, 4);
     QString month = fileName.mid(4, 2);
     QString day = fileName.mid(6, 2);
@@ -253,7 +252,7 @@ void Database::createFilesFromLogEntries()
     updateFiles();
 }
 
-void Database::updateCheckStatus(QString file, bool checked)
+void Database::updateCheckStatus(const QString& file, bool checked)
 {
     m_activeFiles[file].feito = checked;
 }
