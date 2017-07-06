@@ -31,13 +31,15 @@ SOURCES += \
     database.cpp \
     logentry.cpp \
     statisticsview.cpp \
-    thirdparty/qcustomplot/qcustomplot.cpp
+    thirdparty/qcustomplot/qcustomplot.cpp \
+    graphdata.cpp
 
 HEADERS += \
         mainwindow.h \
     database.h \
     logentry.h \
     statisticsview.h \
-    thirdparty/qcustomplot/qcustomplot.h
+    thirdparty/qcustomplot/qcustomplot.h \
+    graphdata.h
 
 win32:RC_FILE = resources.rc
