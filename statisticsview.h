@@ -17,24 +17,7 @@ struct GraphBar {
     int reprovado = 0;
     int listado = 0;
 
-    void update(const LogEntry& file) {
-        if(file.evento == "Liberado para Cliente")
-            liberado++;
-        else if(file.evento == "Aprovado Cliente")
-            aprovado++;
-        else if(file.evento == "Aprovado Cliente c/ Ressalvas")
-            aprovadoRessalva++;
-        else if(file.evento == "Reprovado Cliente")
-            reprovado++;
-        else if(file.evento == "Lista de Documentos")
-            listado++;
-        else if(file.evento == "Transferindo para Versão")
-            listado++;
-    }
-
-    void print() {
-        qDebug() << liberado << aprovado << aprovadoRessalva << reprovado << listado;
-    }
+    void update(const LogEntry& file);
 };
 
 struct GraphData {
@@ -63,9 +46,7 @@ public:
 private:
     QGridLayout *m_gridLayout;
     QLabel *m_topografiaData;
-    void plotGraph(const GraphData& graph);
-
-    int row = 0;
+    void plotGraph(const GraphData& graph, int row);
 };
 
 #endif // STATISTICSVIEW_H

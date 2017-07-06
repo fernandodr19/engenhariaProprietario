@@ -17,10 +17,23 @@ StatisticsView::StatisticsView()
     setMinimumHeight(800);
     setLayout(m_gridLayout);
 
-//    QLabel *topografia = new QLabel("02 - Topografia");
-//    m_topografiaData = new QLabel();
-
     update();
+}
+
+void GraphBar::update(const LogEntry &file)
+{
+    if(file.evento == "Liberado para Cliente")
+        liberado++;
+    else if(file.evento == "Aprovado Cliente")
+        aprovado++;
+    else if(file.evento == "Aprovado Cliente c/ Ressalvas")
+        aprovadoRessalva++;
+    else if(file.evento == "Reprovado Cliente")
+        reprovado++;
+    else if(file.evento == "Lista de Documentos")
+        listado++;
+    else if(file.evento == "Transferindo para Versão")
+        listado++;
 }
 
 void StatisticsView::update()
@@ -66,12 +79,12 @@ void StatisticsView::update()
         }
     }
 
-//    graphs[1].bars[5].print();
-    plotGraph(graphs[0]);
-    plotGraph(graphs[1]);
+    int row = 0;
+    for(const GraphData& graphData : graphs)
+        plotGraph(graphData, row++);
 }
 
-void StatisticsView::plotGraph(const GraphData& graph)
+void StatisticsView::plotGraph(const GraphData& graph, int row)
 {
     QCustomPlot *customPlot = new QCustomPlot();
     customPlot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -107,8 +120,8 @@ void StatisticsView::plotGraph(const GraphData& graph)
     approved->setPen(QPen(QColor(51, 204, 51).lighter(150)));
     approved->setBrush(QColor(51, 204, 51));
     approvedWithComments->setName("Aprovado Cliente c/ Ressalvas");
-    approvedWithComments->setPen(QPen(QColor(0, 102, 0).lighter(150)));
-    approvedWithComments->setBrush(QColor(0, 102, 0));
+    approvedWithComments->setPen(QPen(QColor(255, 102, 0).lighter(150)));
+    approvedWithComments->setBrush(QColor(255, 102, 0));
     reproved->setName("Reprovado Cliente");
     reproved->setPen(QPen(QColor(153, 51, 51).lighter(170)));
     reproved->setBrush(QColor(153, 51, 51));
@@ -167,7 +180,7 @@ void StatisticsView::plotGraph(const GraphData& graph)
     customPlot->xAxis->setLabelColor(Qt::white);
 
     // prepare y axis:
-    customPlot->yAxis->setRange(0, maxHeight);
+    customPlot->yAxis->setRange(0, std::max(12.1, maxHeight));
     customPlot->yAxis->setPadding(5); // a bit more space to the left border
     customPlot->yAxis->setLabel("Número de registros???");
     customPlot->yAxis->setBasePen(QPen(Qt::white));
@@ -190,8 +203,13 @@ void StatisticsView::plotGraph(const GraphData& graph)
     customPlot->legend->setFont(legendFont);
     customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
 
-//    int row = 0;
-    m_gridLayout->addWidget(new QLabel(graph.name), row++, 0, 1, 1, Qt::AlignCenter);
+    //title
+    customPlot->plotLayout()->insertRow(0);
+    QFont font("sans", 17, QFont::Bold);
+    QCPTextElement *title = new QCPTextElement(customPlot, graph.name, font);
+    title->setTextColor(Qt::white);
+    customPlot->plotLayout()->addElement(0,0, title);
+
     m_gridLayout->addWidget(customPlot, row++, 0);
 }
 
