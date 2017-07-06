@@ -92,12 +92,8 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     QPushButton *statisticsButton = new QPushButton("Estatísticas");
-    connect(statisticsButton, &QPushButton::clicked, []() {
-        QDialog dialog;
-        QGridLayout *layout = new QGridLayout();
-        layout->addWidget(new StatisticsView());
-        dialog.setLayout(layout);
-        dialog.exec();
+    connect(statisticsButton, &QPushButton::clicked, [this]() {
+        openStatisticsDialog();
     });
 
     int row = 0;
@@ -516,6 +512,40 @@ void MainWindow::openMenu()
         g_database->loadLogEntriesFromFile();
     }
     populateTable();
+}
+
+void MainWindow::openStatisticsDialog()
+{
+    QDialog dialog;
+    QGridLayout *gridLayout = new QGridLayout();
+    dialog.setLayout(gridLayout);
+    dialog.setWindowTitle("Estatísticas");
+
+    QPushButton *barChart = new QPushButton("Controle de atividades (por lote)");
+    connect(barChart, &QPushButton::clicked, [this]() {
+        openStatisticsView(graph_BarChart);
+//        dialog::close();
+    });
+
+    QPushButton *timeSeries = new QPushButton("Fluxo de atividades");
+    connect(timeSeries, &QPushButton::clicked, [this]() {
+        openStatisticsView(graph_TimeSeries);
+//        dialog::close();
+    });
+
+    gridLayout->addWidget(barChart, 0, 0);
+    gridLayout->addWidget(timeSeries, 1, 0);
+
+    dialog.exec();
+}
+
+void MainWindow::openStatisticsView(statistic_graph g)
+{
+    QDialog dialog;
+    QGridLayout *layout = new QGridLayout();
+    layout->addWidget(new StatisticsView(g));
+    dialog.setLayout(layout);
+    dialog.exec();
 }
 
 void MainWindow::clearFilters()

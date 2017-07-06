@@ -4,49 +4,37 @@
 #include <QWidget>
 #include <QDebug>
 #include "logentry.h"
+#include "graphdata.h"
 
 class QLabel;
 class QCustomPlot;
 class QGridLayout;
 
-struct GraphBar {
-    QString name;
-    int liberado = 0;
-    int aprovado = 0;
-    int aprovadoRessalva = 0;
-    int reprovado = 0;
-    int listado = 0;
-
-    void update(const LogEntry& file);
-};
-
-struct GraphData {
-    GraphData() {}
-    GraphData(const QString& _name, const QString& _filter, const QStringList& paths) :
-        name(_name), filter(_filter) {
-        for(const QString& path : paths) {
-            GraphBar bar;
-            bar.name = path;
-            bars.push_back(bar);
-        }
-    }
-
-    QString name;
-    QString filter;
-    QVector<GraphBar> bars;
+enum statistic_graph {
+    graph_BarChart = 0,
+    graph_TimeSeries,
 };
 
 class StatisticsView : public QWidget
 {
 public:
-    StatisticsView();
-
-    void update();
+    StatisticsView(statistic_graph graph);
 
 private:
     QGridLayout *m_gridLayout;
     QLabel *m_topografiaData;
-    void plotGraph(const GraphData& graph, int row);
+    QVector<GraphData> generateBarChartData();
+    void plotBarChart();
+    QVector<DayInfo> generateTimeSeriesData();
+    void plotTimeSeries();
+    QString getDate(QString data);
+    qint64 getEpochTime(const QString& date);
+
+    QColor releasedColor = QColor(51, 153, 255, 200);
+    QColor approvedColor = QColor(51, 204, 51, 200);
+    QColor approvedWithCommentsColor = QColor(255, 102, 0, 200);
+    QColor reprovedColor = QColor(153, 51, 51, 200);
+    QColor documentsColor = QColor(150, 150, 150, 200);
 };
 
 #endif // STATISTICSVIEW_H

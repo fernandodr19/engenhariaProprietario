@@ -3,6 +3,7 @@
 
 #include <QScrollArea>
 #include <QMap>
+#include <statisticsview.h>
 
 enum col {
     col_Feito = 0,
@@ -47,6 +48,8 @@ private:
     QStringList getEventos();
     QTreeWidget* getTree();
     void openMenu();
+    void openStatisticsDialog();
+    void openStatisticsView(statistic_graph g);
     void paintRow(qint64, int row);
     void visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *item);
     void visitTree(QTreeWidget *tree);
