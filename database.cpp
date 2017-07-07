@@ -12,7 +12,7 @@ extern QSettings *g_settings;
 
 Database::Database()
 {
-
+    m_publicDatabasePath = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\database.ini";
 }
 
 void Database::load()
@@ -115,11 +115,12 @@ void Database::save()
 
 void Database::loadActiveFilesCheckedState()
 {
-    int size = g_settings->beginReadArray("activeFiles");
+    QSettings settings(m_publicDatabasePath, QSettings::IniFormat);
+    int size = settings.beginReadArray("activeFiles");
     for(int i = 0; i < size; ++i) {
-        g_settings->setArrayIndex(i);
-        QString name = g_settings->value("fileName").toString();
-        checkStatus status = (checkStatus)g_settings->value("checkStatus", checkStatus_None).toInt();
+        settings.setArrayIndex(i);
+        QString name = settings.value("fileName").toString();
+        checkStatus status = (checkStatus)settings.value("checkStatus", checkStatus_None).toInt();
         switch (status) {
         case checkStatus_DoneAndDownloaded:
             m_activeFiles[name].feito = true;
@@ -133,7 +134,7 @@ void Database::loadActiveFilesCheckedState()
             break;
         }
     }
-    g_settings->endArray();
+    settings.endArray();
 }
 
 void Database::updateFiles()
@@ -153,31 +154,32 @@ void Database::updateFiles()
 
 void Database::saveActiveFilesCheckStatus()
 {
-    g_settings->beginWriteArray("activeFiles");
+    QSettings settings(m_publicDatabasePath, QSettings::IniFormat);
+    settings.beginWriteArray("activeFiles");
     int i = 0;
     for(auto logEntry = m_activeFiles.begin(); logEntry != m_activeFiles.end();) {
         bool done = logEntry.value().feito;
         bool downloaded = logEntry.value().downloaded;
         if(done && downloaded) {
-            g_settings->setArrayIndex(i++);
-            g_settings->setValue("fileName", logEntry.value().nome);
-            g_settings->setValue("checkStatus", checkStatus_DoneAndDownloaded);
+            settings.setArrayIndex(i++);
+            settings.setValue("fileName", logEntry.value().nome);
+            settings.setValue("checkStatus", checkStatus_DoneAndDownloaded);
         } else {
             if(done) {
-                g_settings->setArrayIndex(i++);
-                g_settings->setValue("fileName", logEntry.value().nome);
-                g_settings->setValue("checkStatus", checkStatus_Done);
+                settings.setArrayIndex(i++);
+                settings.setValue("fileName", logEntry.value().nome);
+                settings.setValue("checkStatus", checkStatus_Done);
             } else {
                 if(downloaded) {
-                    g_settings->setArrayIndex(i++);
-                    g_settings->setValue("fileName", logEntry.value().nome);
-                    g_settings->setValue("checkStatus", checkStatus_Downloaded);
+                    settings.setArrayIndex(i++);
+                    settings.setValue("fileName", logEntry.value().nome);
+                    settings.setValue("checkStatus", checkStatus_Downloaded);
                 }
             }
         }
         logEntry++;
     }
-    g_settings->endArray();
+    settings.endArray();
 }
 
 void Database::loadLogEntriesFromFile()

@@ -72,6 +72,8 @@ private:
     QString m_filesPath;
     QMap<QString, LogEntry> m_activeFiles;
     QVector<LogEntry> m_historicFiles;
+
+    QString m_publicDatabasePath;
 };
 
 #endif // DATABASE_H
