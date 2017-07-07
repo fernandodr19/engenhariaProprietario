@@ -32,7 +32,8 @@ SOURCES += \
     logentry.cpp \
     statisticsview.cpp \
     thirdparty/qcustomplot/qcustomplot.cpp \
-    graphdata.cpp
+    graphdata.cpp \
+    savethread.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -40,6 +41,7 @@ HEADERS += \
     logentry.h \
     statisticsview.h \
     thirdparty/qcustomplot/qcustomplot.h \
-    graphdata.h
+    graphdata.h \
+    savethread.h
 
 win32:RC_FILE = resources.rc

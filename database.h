@@ -5,11 +5,9 @@
 #include <QMap>
 #include "logentry.h"
 
-enum checkStatus {
-    checkStatus_DoneAndDownloaded = 0,
-    checkStatus_Done,
-    checkStatus_Downloaded,
-    checkStatus_None,
+struct checkedStatus {
+    bool done = false;
+    bool downloaded = false;
 };
 
 class Database
@@ -48,7 +46,8 @@ public:
     void reloadLogEntries();
     void loadLogEntriesFromFile();
     void updateCheckStatus(const QString& file, bool checked, int col);
-
+    bool isFileDone(const QString& fileName);
+    bool isFileDownloaded(const QString& fileName);
 private:
     void loadActiveFilesCheckedState();
     void saveActiveFilesCheckStatus();
@@ -74,6 +73,9 @@ private:
     QVector<LogEntry> m_historicFiles;
 
     QString m_publicDatabasePath;
+    QMap<QString, checkedStatus> m_checkedFiles;
+
+    QSettings m_settings;
 };
 
 #endif // DATABASE_H

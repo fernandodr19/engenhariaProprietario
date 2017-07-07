@@ -60,6 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_showRegistredDates, &QPushButton::clicked, [this](){ showRegistredDates(); });
 
     m_reloadDatabase = new QPushButton("Atualizar o banco de dados");
+    m_reloadDatabase->setShortcut(QKeySequence("F5"));
     connect(m_reloadDatabase, &QPushButton::clicked, [this](){
         reloadDatabase();
     });
@@ -90,6 +91,20 @@ MainWindow::MainWindow(QWidget *parent)
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     connect(m_table->horizontalHeader(), &QHeaderView::sectionMoved, [this](int, int from, int to) {
         m_headersOrder.move(from, to);
+    });
+    connect(m_table, &QTableWidget::cellClicked, [this](int row, int column) {
+        if(column != col_Feito && column != col_Downloaded)
+            return;
+
+        QTableWidgetItem *item = m_table->item(row, column);
+        QString file = m_table->item(row, col_Nome)->text();
+        bool checked;
+        if(item->checkState() == Qt::Checked)
+            checked = true;
+        else
+            checked = false;
+
+        g_database->updateCheckStatus(file, checked, column);
     });
 
     QPushButton *statisticsButton = new QPushButton("Estatísticas");
@@ -204,21 +219,6 @@ void MainWindow::populateTable()
             insertRow(logEntry, row++);
         }
     }
-
-    connect(m_table, &QTableWidget::cellClicked, [this](int row, int column) {
-        if(column != col_Feito && column != col_Downloaded)
-            return;
-
-        QTableWidgetItem *item = m_table->item(row, column);
-        QString file = m_table->item(row, col_Nome)->text();
-        bool checked;
-        if(item->checkState() == Qt::Checked)
-            checked = true;
-        else
-            checked = false;
-
-        g_database->updateCheckStatus(file, checked, column);
-    });
     m_table->resizeColumnsToContents();
     m_table->setSortingEnabled(true);
 }
@@ -230,19 +230,19 @@ void MainWindow::insertRow(const LogEntry& logEntry, int row)
     if(!m_table->isColumnHidden(++col)) {
         QTableWidgetItem *item = new QTableWidgetItem();
         item->data(Qt::CheckStateRole);
-        if(!logEntry.feito)
-            item->setCheckState(Qt::Unchecked);
-        else
+        if(logEntry.feito)
             item->setCheckState(Qt::Checked);
+        else
+            item->setCheckState(Qt::Unchecked);
         m_table->setItem(row, col, item);
     }
     if(!m_table->isColumnHidden(++col)) {
         QTableWidgetItem *item = new QTableWidgetItem();
         item->data(Qt::CheckStateRole);
-        if(!logEntry.downloaded)
-            item->setCheckState(Qt::Unchecked);
-        else
+        if(logEntry.downloaded)
             item->setCheckState(Qt::Checked);
+        else
+            item->setCheckState(Qt::Unchecked);
         m_table->setItem(row, col, item);
     }
     if(!m_table->isColumnHidden(++col))
@@ -595,12 +595,6 @@ void MainWindow::showRegistredDates()
 
 void MainWindow::reloadDatabase()
 {
-    QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(this, "Atualizar banco de dados", "Tem certeza de que deseja atualizar o banco de dados?\n(Isso pode levar alguns minutos)", QMessageBox::Yes|QMessageBox::No);
-
-    if(reply != QMessageBox::Yes)
-        return;
-
     g_database->reloadLogEntries();
     populateTable();
 }

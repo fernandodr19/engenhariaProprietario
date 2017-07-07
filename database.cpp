@@ -7,6 +7,7 @@
 #include <QDateTime>
 #include "logentry.h"
 #include "mainwindow.h"
+#include "savethread.h"
 
 extern QSettings *g_settings;
 
@@ -109,8 +110,6 @@ void Database::save()
         g_settings->setValue("readDate", m_readDatesList[i]);
     }
     g_settings->endArray();
-
-    saveActiveFilesCheckStatus();
 }
 
 void Database::loadActiveFilesCheckedState()
@@ -120,19 +119,10 @@ void Database::loadActiveFilesCheckedState()
     for(int i = 0; i < size; ++i) {
         settings.setArrayIndex(i);
         QString name = settings.value("fileName").toString();
-        checkStatus status = (checkStatus)settings.value("checkStatus", checkStatus_None).toInt();
-        switch (status) {
-        case checkStatus_DoneAndDownloaded:
-            m_activeFiles[name].feito = true;
-            m_activeFiles[name].downloaded = true;
-            break;
-        case checkStatus_Done:
-            m_activeFiles[name].feito = true;
-            break;
-        case checkStatus_Downloaded:
-            m_activeFiles[name].downloaded = true;
-            break;
-        }
+        bool done = settings.value("done", false).toBool();
+        bool downloaded = settings.value("downloaded", false).toBool();
+        m_activeFiles[name].feito = done;
+        m_activeFiles[name].downloaded = downloaded;
     }
     settings.endArray();
 }
@@ -150,36 +140,6 @@ void Database::updateFiles()
         }
         m_activeFiles[key] = logEntry;
     }
-}
-
-void Database::saveActiveFilesCheckStatus()
-{
-    QSettings settings(m_publicDatabasePath, QSettings::IniFormat);
-    settings.beginWriteArray("activeFiles");
-    int i = 0;
-    for(auto logEntry = m_activeFiles.begin(); logEntry != m_activeFiles.end();) {
-        bool done = logEntry.value().feito;
-        bool downloaded = logEntry.value().downloaded;
-        if(done && downloaded) {
-            settings.setArrayIndex(i++);
-            settings.setValue("fileName", logEntry.value().nome);
-            settings.setValue("checkStatus", checkStatus_DoneAndDownloaded);
-        } else {
-            if(done) {
-                settings.setArrayIndex(i++);
-                settings.setValue("fileName", logEntry.value().nome);
-                settings.setValue("checkStatus", checkStatus_Done);
-            } else {
-                if(downloaded) {
-                    settings.setArrayIndex(i++);
-                    settings.setValue("fileName", logEntry.value().nome);
-                    settings.setValue("checkStatus", checkStatus_Downloaded);
-                }
-            }
-        }
-        logEntry++;
-    }
-    settings.endArray();
 }
 
 void Database::loadLogEntriesFromFile()
@@ -259,7 +219,6 @@ QString Database::getDate(QString fileName)
 
 void Database::reloadLogEntries()
 {
-    saveActiveFilesCheckStatus();
     loadLogEntriesFromFile();
     createFilesFromLogEntries();
     loadActiveFilesCheckedState();
@@ -278,4 +237,7 @@ void Database::updateCheckStatus(const QString& file, bool checked, int col)
         m_activeFiles[file].feito = checked;
     if(col == col_Downloaded)
         m_activeFiles[file].downloaded = checked;
+    SaveThread *sThread = new SaveThread(m_publicDatabasePath, m_activeFiles);
+    sThread->start();
+    sThread->connect(sThread, SIGNAL(finished()), sThread, SLOT(deleteLater()));
 }
