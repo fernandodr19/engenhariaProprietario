@@ -14,6 +14,7 @@ public:
     static qint64 getEpochTime(const QString& date, const QString& time);
 
     bool feito;
+    bool downloaded;
     QString obra;
     QString evento;
     QString tipo;

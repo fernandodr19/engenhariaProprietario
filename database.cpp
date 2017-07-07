@@ -6,6 +6,7 @@
 #include <QTextStream>
 #include <QDateTime>
 #include "logentry.h"
+#include "mainwindow.h"
 
 extern QSettings *g_settings;
 
@@ -22,7 +23,7 @@ void Database::load()
     m_approvedWithCommentsFilter = g_settings->value("approvedWithCommentsFilter", false).toBool();
     m_reprovedFilter = g_settings->value("reprovedFilter", false).toBool();
 
-    QStringList headersName = {"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"};
+    QStringList headersName = {"Feito", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"};
 
     int size = g_settings->beginReadArray("showColumns");
     for(int i = 0; i < size; ++i) {
@@ -117,8 +118,20 @@ void Database::loadActiveFilesCheckedState()
     int size = g_settings->beginReadArray("activeFiles");
     for(int i = 0; i < size; ++i) {
         g_settings->setArrayIndex(i);
-        QString name = g_settings->value("name").toString();
-        m_activeFiles[name].feito = true;
+        QString name = g_settings->value("fileName").toString();
+        checkStatus status = (checkStatus)g_settings->value("checkStatus", checkStatus_None).toInt();
+        switch (status) {
+        case checkStatus_DoneAndDownloaded:
+            m_activeFiles[name].feito = true;
+            m_activeFiles[name].downloaded = true;
+            break;
+        case checkStatus_Done:
+            m_activeFiles[name].feito = true;
+            break;
+        case checkStatus_Downloaded:
+            m_activeFiles[name].downloaded = true;
+            break;
+        }
     }
     g_settings->endArray();
 }
@@ -136,16 +149,6 @@ void Database::updateFiles()
         }
         m_activeFiles[key] = logEntry;
     }
-
-//    for(auto it = m_activeFiles.begin(); it != m_activeFiles.end();) {
-//        if(it.value().evento != "Liberado para Cliente" &&
-//                it.value().evento != "Aprovado Cliente" &&
-//                it.value().evento != "Aprovado Cliente c/ Ressalvas" &&
-//                it.value().evento != "Reprovado Cliente")
-//            it = m_activeFiles.erase(it);
-//        else
-//            it++;
-//    }
 }
 
 void Database::saveActiveFilesCheckStatus()
@@ -153,9 +156,24 @@ void Database::saveActiveFilesCheckStatus()
     g_settings->beginWriteArray("activeFiles");
     int i = 0;
     for(auto logEntry = m_activeFiles.begin(); logEntry != m_activeFiles.end();) {
-        if(logEntry.value().feito) {
+        bool done = logEntry.value().feito;
+        bool downloaded = logEntry.value().downloaded;
+        if(done && downloaded) {
             g_settings->setArrayIndex(i++);
-            g_settings->setValue("name", logEntry.value().nome);
+            g_settings->setValue("fileName", logEntry.value().nome);
+            g_settings->setValue("checkStatus", checkStatus_DoneAndDownloaded);
+        } else {
+            if(done) {
+                g_settings->setArrayIndex(i++);
+                g_settings->setValue("fileName", logEntry.value().nome);
+                g_settings->setValue("checkStatus", checkStatus_Done);
+            } else {
+                if(downloaded) {
+                    g_settings->setArrayIndex(i++);
+                    g_settings->setValue("fileName", logEntry.value().nome);
+                    g_settings->setValue("checkStatus", checkStatus_Downloaded);
+                }
+            }
         }
         logEntry++;
     }
@@ -252,7 +270,10 @@ void Database::createFilesFromLogEntries()
     updateFiles();
 }
 
-void Database::updateCheckStatus(const QString& file, bool checked)
+void Database::updateCheckStatus(const QString& file, bool checked, int col)
 {
-    m_activeFiles[file].feito = checked;
+    if(col == col_Feito)
+        m_activeFiles[file].feito = checked;
+    if(col == col_Downloaded)
+        m_activeFiles[file].downloaded = checked;
 }

@@ -78,12 +78,13 @@ MainWindow::MainWindow(QWidget *parent)
         else
             m_historicFilter = false;
         m_table->setColumnHidden(col_Feito, m_historicFilter);
+        m_table->setColumnHidden(col_Downloaded, m_historicFilter);
         populateTable();
     });
 
-    m_headersName = QStringList({"Feito", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"});
+    m_headersName = QStringList({"Feito", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"});
 
-    m_table = new QTableWidget(0, 10);
+    m_table = new QTableWidget(0, 11);
     m_table->setHorizontalHeaderLabels(m_headersName);
     m_table->horizontalHeader()->setSectionsMovable(true);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -190,41 +191,7 @@ void MainWindow::populateTable()
             if(!events.contains(logEntry.evento))
                 continue;
 
-            m_table->insertRow(row);
-            int col = -1;
-            if(!m_table->isColumnHidden(++col)) {
-                QTableWidgetItem *item = new QTableWidgetItem(1);
-                item->data(Qt::CheckStateRole);
-                if(!logEntry.feito)
-                    item->setCheckState(Qt::Unchecked);
-                else
-                    item->setCheckState(Qt::Checked);
-                m_table->setItem(row, col, item);
-            }
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
-            if(!m_table->isColumnHidden(++col)) {
-                QTableWidgetItem *dataHora = new QTableWidgetItem();
-                dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
-                dataHora->setData(Qt::UserRole, logEntry.hora);
-                m_table->setItem(row, col, dataHora);
-            }
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
-            paintRow(logEntry.epochTime, row);
-            row++;
+            insertRow(logEntry, row++);
         }
     } else {
         for(const LogEntry& logEntry : g_database->getHistoricFiles()) {
@@ -234,46 +201,12 @@ void MainWindow::populateTable()
             if(!events.contains(logEntry.evento))
                 continue;
 
-            m_table->insertRow(row);
-            int col = -1;
-            if(!m_table->isColumnHidden(++col)) {
-                QTableWidgetItem *item = new QTableWidgetItem(1);
-                item->data(Qt::CheckStateRole);
-                if(!logEntry.feito)
-                    item->setCheckState(Qt::Unchecked);
-                else
-                    item->setCheckState(Qt::Checked);
-                m_table->setItem(row, col, item);
-            }
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
-            if(!m_table->isColumnHidden(++col)) {
-                QTableWidgetItem *dataHora = new QTableWidgetItem();
-                dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
-                dataHora->setData(Qt::UserRole, logEntry.hora);
-                m_table->setItem(row, col, dataHora);
-            }
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
-            if(!m_table->isColumnHidden(++col))
-                m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
-            paintRow(logEntry.epochTime, row);
-            row++;
+            insertRow(logEntry, row++);
         }
     }
 
     connect(m_table, &QTableWidget::cellClicked, [this](int row, int column) {
-        if(column != 0)
+        if(column != col_Feito && column != col_Downloaded)
             return;
 
         QTableWidgetItem *item = m_table->item(row, column);
@@ -284,10 +217,57 @@ void MainWindow::populateTable()
         else
             checked = false;
 
-        g_database->updateCheckStatus(file, checked);
+        g_database->updateCheckStatus(file, checked, column);
     });
     m_table->resizeColumnsToContents();
     m_table->setSortingEnabled(true);
+}
+
+void MainWindow::insertRow(const LogEntry& logEntry, int row)
+{
+    m_table->insertRow(row);
+    int col = -1;
+    if(!m_table->isColumnHidden(++col)) {
+        QTableWidgetItem *item = new QTableWidgetItem();
+        item->data(Qt::CheckStateRole);
+        if(!logEntry.feito)
+            item->setCheckState(Qt::Unchecked);
+        else
+            item->setCheckState(Qt::Checked);
+        m_table->setItem(row, col, item);
+    }
+    if(!m_table->isColumnHidden(++col)) {
+        QTableWidgetItem *item = new QTableWidgetItem();
+        item->data(Qt::CheckStateRole);
+        if(!logEntry.downloaded)
+            item->setCheckState(Qt::Unchecked);
+        else
+            item->setCheckState(Qt::Checked);
+        m_table->setItem(row, col, item);
+    }
+    if(!m_table->isColumnHidden(++col))
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
+    if(!m_table->isColumnHidden(++col))
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
+    if(!m_table->isColumnHidden(++col))
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
+    if(!m_table->isColumnHidden(++col))
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
+    if(!m_table->isColumnHidden(++col))
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
+    if(!m_table->isColumnHidden(++col))
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
+    if(!m_table->isColumnHidden(++col)) {
+        QTableWidgetItem *dataHora = new QTableWidgetItem();
+        dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
+        dataHora->setData(Qt::UserRole, logEntry.hora);
+        m_table->setItem(row, col, dataHora);
+    }
+    if(!m_table->isColumnHidden(++col))
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
+    if(!m_table->isColumnHidden(++col))
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
+    paintRow(logEntry.epochTime, row);
 }
 
 void MainWindow::paintRow(qint64 epochTime, int row)
@@ -299,17 +279,17 @@ void MainWindow::paintRow(qint64 epochTime, int row)
     double delayedDays = diff/day;
 
     if(delayedDays > 7) {
-        for(int col = 1; col < m_table->columnCount(); col++) {
+        for(int col = 2; col < m_table->columnCount(); col++) {
             if(!m_table->isColumnHidden(col))
                 m_table->item(row, col)->setBackgroundColor(QColor(255, 50, 70));
         }
     } else if(delayedDays > 5) {
-        for(int col = 1; col < m_table->columnCount(); col++) {
+        for(int col = 2; col < m_table->columnCount(); col++) {
             if(!m_table->isColumnHidden(col))
                 m_table->item(row, col)->setBackgroundColor(QColor(255,165,0));
         }
     } else if(delayedDays > 3) {
-        for(int col = 1; col < m_table->columnCount(); col++) {
+        for(int col = 2; col < m_table->columnCount(); col++) {
             if(!m_table->isColumnHidden(col))
                 m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
         }
@@ -522,15 +502,15 @@ void MainWindow::openStatisticsDialog()
     dialog.setWindowTitle("Estatísticas");
 
     QPushButton *barChart = new QPushButton("Controle de atividades (por lote)");
-    connect(barChart, &QPushButton::clicked, [this]() {
+    connect(barChart, &QPushButton::clicked, [this, &dialog]() {
         openStatisticsView(graph_BarChart);
-//        dialog::close();
+        dialog.close();
     });
 
     QPushButton *timeSeries = new QPushButton("Fluxo de atividades");
-    connect(timeSeries, &QPushButton::clicked, [this]() {
+    connect(timeSeries, &QPushButton::clicked, [this, &dialog]() {
         openStatisticsView(graph_TimeSeries);
-//        dialog::close();
+        dialog.close();
     });
 
     gridLayout->addWidget(barChart, 0, 0);

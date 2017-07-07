@@ -9,6 +9,7 @@ LogEntry::LogEntry()
 void LogEntry::load(const QString& _data, const QStringList& fields)
 {
     feito = false;
+    downloaded = false;
     obra = fields[0];
     evento = fields[1];
     tipo = fields[2];

@@ -7,6 +7,7 @@
 
 enum col {
     col_Feito = 0,
+    col_Downloaded,
     col_Obra,
     col_Evento,
     col_Tipo,
@@ -45,6 +46,7 @@ private:
     void initializeTable();
     void reloadTableData();
     void populateTable();
+    void insertRow(const LogEntry& logEntry, int row);
     QStringList getEventos();
     QTreeWidget* getTree();
     void openMenu();

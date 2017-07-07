@@ -5,6 +5,13 @@
 #include <QMap>
 #include "logentry.h"
 
+enum checkStatus {
+    checkStatus_DoneAndDownloaded = 0,
+    checkStatus_Done,
+    checkStatus_Downloaded,
+    checkStatus_None,
+};
+
 class Database
 {
 public:
@@ -40,7 +47,7 @@ public:
 
     void reloadLogEntries();
     void loadLogEntriesFromFile();
-    void updateCheckStatus(const QString& file, bool checked);
+    void updateCheckStatus(const QString& file, bool checked, int col);
 
 private:
     void loadActiveFilesCheckedState();
