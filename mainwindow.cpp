@@ -300,6 +300,9 @@ void MainWindow::paintRow(qint64 epochTime, int row)
 
 void MainWindow::updateHeadersOrder()
 {
+    if(m_headersOrder.isEmpty() || m_headersName.size() != m_headersOrder.size())
+        return;
+
     QStringList names;
     for(int i = 0; i < m_headersName.size(); i++)
         names.push_back(m_headersName[i]);
@@ -307,6 +310,8 @@ void MainWindow::updateHeadersOrder()
     for(int i = 0; i < names.size(); i++) {
         int index = names.indexOf(m_headersOrder[i]);
         if(index != i) {
+            if(index == -1)
+                return;
             m_table->horizontalHeader()->blockSignals(true);
             m_table->horizontalHeader()->moveSection(index, i);
             m_table->horizontalHeader()->blockSignals(false);
