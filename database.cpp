@@ -117,7 +117,7 @@ void Database::loadActiveFilesCheckedState()
     QSettings settings(m_publicDatabasePath, QSettings::IniFormat);
     for(const QString& fileName : settings.childGroups()) {
         settings.beginGroup(fileName);
-        m_activeFiles[fileName].forwarded = settings.value("done", false).toBool();//checkHere modificar aqui depois
+        m_activeFiles[fileName].forwarded = settings.value("forwarded", false).toBool();
         m_activeFiles[fileName].downloaded = settings.value("downloaded", false).toBool();
         settings.endGroup();
     }
