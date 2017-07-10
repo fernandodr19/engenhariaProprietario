@@ -115,23 +115,19 @@ void Database::save()
 void Database::loadActiveFilesCheckedState()
 {
     QSettings settings(m_publicDatabasePath, QSettings::IniFormat);
-    int size = settings.beginReadArray("activeFiles");
-    for(int i = 0; i < size; ++i) {
-        settings.setArrayIndex(i);
-        QString name = settings.value("fileName").toString();
-        bool done = settings.value("done", false).toBool();
-        bool downloaded = settings.value("downloaded", false).toBool();
-        m_activeFiles[name].feito = done;
-        m_activeFiles[name].downloaded = downloaded;
+    for(const QString& fileName : settings.childGroups()) {
+        settings.beginGroup(fileName);
+        m_activeFiles[fileName].done = settings.value("done", false).toBool();
+        m_activeFiles[fileName].downloaded = settings.value("downloaded", false).toBool();
+        settings.endGroup();
     }
-    settings.endArray();
 }
 
 void Database::updateFiles()
 {
     for(const LogEntry& logEntry : m_logEntries) {
-        const QString& key = logEntry.nome;
-        const QString& evento = logEntry.evento;
+        const QString& key = logEntry.name;
+        const QString& evento = logEntry.event;
         if(evento == "Liberado para Cliente" ||
                 evento == "Aprovado Cliente" ||
                 evento == "Aprovado Cliente c/ Ressalvas" ||
@@ -163,12 +159,12 @@ void Database::loadLogEntriesFromFile()
             QStringList fields = line.split("\t");
             LogEntry logEntry;
             logEntry.load(data, fields);
-            if(logEntry.evento == "Aprovado Cliente" ||
-                    logEntry.evento == "Liberado para Cliente" ||
-                    logEntry.evento == "Reprovado Cliente" ||
-                    logEntry.evento == "Aprovado Cliente c/ Ressalvas" ||
-                    logEntry.evento == "Transferindo para Versão" ||
-                    logEntry.evento == "Lista de Documentos") {
+            if(logEntry.event == "Aprovado Cliente" ||
+                    logEntry.event == "Liberado para Cliente" ||
+                    logEntry.event == "Reprovado Cliente" ||
+                    logEntry.event == "Aprovado Cliente c/ Ressalvas" ||
+                    logEntry.event == "Transferindo para Versão" ||
+                    logEntry.event == "Lista de Documentos") {
                 m_logEntries.push_back(logEntry);
             }
         }
@@ -233,11 +229,11 @@ void Database::createFilesFromLogEntries()
 
 void Database::updateCheckStatus(const QString& file, bool checked, int col)
 {
-    if(col == col_Feito)
-        m_activeFiles[file].feito = checked;
+    if(col == col_Done)
+        m_activeFiles[file].done = checked;
     if(col == col_Downloaded)
         m_activeFiles[file].downloaded = checked;
-    SaveThread *sThread = new SaveThread(m_publicDatabasePath, m_activeFiles);
+    SaveThread *sThread = new SaveThread(m_publicDatabasePath, file, checked, (column)col);
     sThread->start();
     sThread->connect(sThread, SIGNAL(finished()), sThread, SLOT(deleteLater()));
 }

@@ -12,17 +12,17 @@ GraphData::GraphData(const QString& _name, const QString& _filter, const QString
 
 void GraphBar::update(const LogEntry &file)
 {
-    if(file.evento == "Liberado para Cliente")
+    if(file.event == "Liberado para Cliente")
         liberado++;
-    else if(file.evento == "Aprovado Cliente")
+    else if(file.event == "Aprovado Cliente")
         aprovado++;
-    else if(file.evento == "Aprovado Cliente c/ Ressalvas")
+    else if(file.event == "Aprovado Cliente c/ Ressalvas")
         aprovadoRessalva++;
-    else if(file.evento == "Reprovado Cliente")
+    else if(file.event == "Reprovado Cliente")
         reprovado++;
-    else if(file.evento == "Lista de Documentos")
+    else if(file.event == "Lista de Documentos")
         listado++;
-    else if(file.evento == "Transferindo para Versão")
+    else if(file.event == "Transferindo para Versão")
         listado++;
 }
 
@@ -33,16 +33,16 @@ DayInfo::DayInfo(const QString &data) :
 
 void DayInfo::update(const LogEntry &file)
 {
-    if(file.evento == "Liberado para Cliente")
+    if(file.event == "Liberado para Cliente")
         liberado++;
-    else if(file.evento == "Aprovado Cliente")
+    else if(file.event == "Aprovado Cliente")
         aprovado++;
-    else if(file.evento == "Aprovado Cliente c/ Ressalvas")
+    else if(file.event == "Aprovado Cliente c/ Ressalvas")
         aprovadoRessalva++;
-    else if(file.evento == "Reprovado Cliente")
+    else if(file.event == "Reprovado Cliente")
         reprovado++;
-    else if(file.evento == "Lista de Documentos")
+    else if(file.event == "Lista de Documentos")
         listado++;
-    else if(file.evento == "Transferindo para Versão")
+    else if(file.event == "Transferindo para Versão")
         listado++;
 }

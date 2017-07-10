@@ -4,22 +4,23 @@
 #include <QThread>
 #include <QDebug>
 #include "logentry.h"
+#include "mainwindow.h"
 
 
 class SaveThread : public QThread
 {
 
 public:
-    SaveThread(const QString& databasePath, const QMap<QString, LogEntry>& activeFiles);
+    SaveThread(const QString& databasePath, const QString& fileName, bool checked, column col);
 
     void saveActiveFilesCheckStatus();
 
     QString m_databasePath;
-    QMap<QString, LogEntry> m_activeFiles;
+    QString m_fileName;
+    bool m_checked;
+    column m_col;
 protected:
-    void run() {
-        saveActiveFilesCheckStatus();
-    }
+    void run() { saveActiveFilesCheckStatus(); }
 };
 
 #endif // SAVETHREAD_H

@@ -33,7 +33,7 @@ QVector<GraphData> StatisticsView::generateBarChartData()
     const QMap<QString, LogEntry>& files = g_database->getActiveFiles();
     for(auto it = files.begin(); it != files.end(); ++it) {
         const LogEntry& file = it.value();
-        QStringList paths = file.caminho.split("\\");
+        QStringList paths = file.path.split("\\");
         if(paths.size() >= 2 && !paths.at(1).isEmpty())
             basePaths.insert(paths.at(1));
     }
@@ -64,7 +64,7 @@ QVector<GraphData> StatisticsView::generateBarChartData()
         for(GraphBar& bar : graph.bars) {
             for(auto it = realFiles.begin(); it != realFiles.end(); ++it) {
                 const LogEntry& file = it.value();
-                if(file.caminho.contains(bar.name) && file.caminho.contains(graph.filter))
+                if(file.path.contains(bar.name) && file.path.contains(graph.filter))
                     bar.update(file);
             }
         }
@@ -219,7 +219,7 @@ QVector<DayInfo> StatisticsView::generateTimeSeriesData()
 
     for(const LogEntry& logEntry : g_database->getHistoricFiles()) {
         for(DayInfo& dayInfo : timeSeriesData) {
-            if(dayInfo.data == logEntry.data) {
+            if(dayInfo.data == logEntry.date) {
                 dayInfo.update(logEntry);
                 break;
             }

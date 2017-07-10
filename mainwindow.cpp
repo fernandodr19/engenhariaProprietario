@@ -49,19 +49,20 @@ MainWindow::MainWindow(QWidget *parent)
     QGridLayout *gridLayout = new QGridLayout;
     verticalLayout->addLayout(gridLayout);
 
-    m_config = new QPushButton();
+    m_config = new QPushButton("Configurações");
     m_config->setIcon(QIcon("icons\\settings.ico"));
-    m_config->setStyleSheet("border: none");
     connect(m_config, &QPushButton::clicked, [this]() {
         openMenu();
     });
 
     m_showRegistredDates = new QPushButton("Exibir datas cadastradas");
+    m_showRegistredDates->setIcon(QIcon("icons\\calendar.png"));
     connect(m_showRegistredDates, &QPushButton::clicked, [this](){ showRegistredDates(); });
 
-    m_reloadDatabase = new QPushButton("Atualizar o banco de dados");
-    m_reloadDatabase->setShortcut(QKeySequence("F5"));
-    connect(m_reloadDatabase, &QPushButton::clicked, [this](){
+    m_refreshDatabase = new QPushButton("Atualizar o banco de dados");
+    m_refreshDatabase->setIcon(QIcon("icons\\refresh.png"));
+    m_refreshDatabase->setShortcut(QKeySequence("F5"));
+    connect(m_refreshDatabase, &QPushButton::clicked, [this](){
         reloadDatabase();
     });
 
@@ -78,7 +79,7 @@ MainWindow::MainWindow(QWidget *parent)
             m_historicFilter = true;
         else
             m_historicFilter = false;
-        m_table->setColumnHidden(col_Feito, m_historicFilter);
+        m_table->setColumnHidden(col_Done, m_historicFilter);
         m_table->setColumnHidden(col_Downloaded, m_historicFilter);
         populateTable();
     });
@@ -93,11 +94,11 @@ MainWindow::MainWindow(QWidget *parent)
         m_headersOrder.move(from, to);
     });
     connect(m_table, &QTableWidget::cellClicked, [this](int row, int column) {
-        if(column != col_Feito && column != col_Downloaded)
+        if(column != col_Done && column != col_Downloaded)
             return;
 
         QTableWidgetItem *item = m_table->item(row, column);
-        QString file = m_table->item(row, col_Nome)->text();
+        QString file = m_table->item(row, col_Name)->text();
         bool checked;
         if(item->checkState() == Qt::Checked)
             checked = true;
@@ -108,6 +109,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     QPushButton *statisticsButton = new QPushButton("Estatísticas");
+    statisticsButton->setIcon(QIcon("icons\\statistic.png"));
     connect(statisticsButton, &QPushButton::clicked, [this]() {
         openStatisticsDialog();
     });
@@ -115,7 +117,7 @@ MainWindow::MainWindow(QWidget *parent)
     int row = 0;
     int col = 0;
     gridLayout->addWidget(m_showRegistredDates, row, col++);
-    gridLayout->addWidget(m_reloadDatabase, row, col++);
+    gridLayout->addWidget(m_refreshDatabase, row, col++);
     gridLayout->addWidget(statisticsButton, row, col++);
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
@@ -187,7 +189,7 @@ void MainWindow::initializeTable()
     populateTable();
 
     m_table->setSortingEnabled(true);
-    m_table->sortByColumn(col_DataHora, Qt::AscendingOrder);
+    m_table->sortByColumn(col_DateHour, Qt::AscendingOrder);
 }
 
 void MainWindow::populateTable()
@@ -200,20 +202,20 @@ void MainWindow::populateTable()
     int row = 0;
     if(!m_historicFilter) {
         for(const LogEntry& logEntry : g_database->getActiveFiles()) {
-            if(containsUndesirablePath(logEntry.caminho))
+            if(containsUndesirablePath(logEntry.path))
                 continue;
 
-            if(!events.contains(logEntry.evento))
+            if(!events.contains(logEntry.event))
                 continue;
 
             insertRow(logEntry, row++);
         }
     } else {
         for(const LogEntry& logEntry : g_database->getHistoricFiles()) {
-            if(containsUndesirablePath(logEntry.caminho))
+            if(containsUndesirablePath(logEntry.path))
                 continue;
 
-            if(!events.contains(logEntry.evento))
+            if(!events.contains(logEntry.event))
                 continue;
 
             insertRow(logEntry, row++);
@@ -230,7 +232,7 @@ void MainWindow::insertRow(const LogEntry& logEntry, int row)
     if(!m_table->isColumnHidden(++col)) {
         QTableWidgetItem *item = new QTableWidgetItem();
         item->data(Qt::CheckStateRole);
-        if(logEntry.feito)
+        if(logEntry.done)
             item->setCheckState(Qt::Checked);
         else
             item->setCheckState(Qt::Unchecked);
@@ -246,27 +248,27 @@ void MainWindow::insertRow(const LogEntry& logEntry, int row)
         m_table->setItem(row, col, item);
     }
     if(!m_table->isColumnHidden(++col))
-        m_table->setItem(row, col, new QTableWidgetItem(logEntry.obra));
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.work));
     if(!m_table->isColumnHidden(++col))
-        m_table->setItem(row, col, new QTableWidgetItem(logEntry.evento));
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.event));
     if(!m_table->isColumnHidden(++col))
-        m_table->setItem(row, col, new QTableWidgetItem(logEntry.tipo));
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.type));
     if(!m_table->isColumnHidden(++col))
-        m_table->setItem(row, col, new QTableWidgetItem(logEntry.nome));
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.name));
     if(!m_table->isColumnHidden(++col))
-        m_table->setItem(row, col, new QTableWidgetItem(logEntry.usuario));
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.user));
     if(!m_table->isColumnHidden(++col))
-        m_table->setItem(row, col, new QTableWidgetItem(logEntry.empresa));
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.company));
     if(!m_table->isColumnHidden(++col)) {
         QTableWidgetItem *dataHora = new QTableWidgetItem();
         dataHora->setData(Qt::EditRole, QDateTime::fromMSecsSinceEpoch(logEntry.epochTime));
-        dataHora->setData(Qt::UserRole, logEntry.hora);
+        dataHora->setData(Qt::UserRole, logEntry.hour);
         m_table->setItem(row, col, dataHora);
     }
     if(!m_table->isColumnHidden(++col))
-        m_table->setItem(row, col, new QTableWidgetItem(logEntry.caminho));
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.path));
     if(!m_table->isColumnHidden(++col))
-        m_table->setItem(row, col, new QTableWidgetItem(logEntry.arquivo));
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.file));
     paintRow(logEntry.epochTime, row);
 }
 
@@ -341,7 +343,7 @@ QTreeWidget* MainWindow::getTree()
 
     QStringList singlePaths;
     for(const LogEntry& logEntry : g_database->getActiveFiles()) {
-        QString path = logEntry.caminho;
+        QString path = logEntry.path;
 
         if(path == "" || path == "\\")
             continue;
@@ -558,7 +560,7 @@ void MainWindow::clearFilters()
 
     populateTable();
 
-    m_table->sortByColumn(col_DataHora, Qt::AscendingOrder);
+    m_table->sortByColumn(col_DateHour, Qt::AscendingOrder);
 }
 
 void MainWindow::showRegistredDates()

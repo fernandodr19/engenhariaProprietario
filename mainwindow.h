@@ -5,18 +5,18 @@
 #include <QMap>
 #include <statisticsview.h>
 
-enum col {
-    col_Feito = 0,
+enum column {
+    col_Done = 0,
     col_Downloaded,
-    col_Obra,
-    col_Evento,
-    col_Tipo,
-    col_Nome,
-    col_Usuario,
-    col_Empresa,
-    col_DataHora,
-    col_Caminho,
-    col_Arquivo,
+    col_Work,
+    col_Event,
+    col_Type,
+    col_Name,
+    col_User,
+    col_Company,
+    col_DateHour,
+    col_Path,
+    col_File,
 };
 
 class QComboBox;
@@ -63,11 +63,10 @@ private:
     void setEnabled(QTreeWidgetItem *item);
     void updateHeadersOrder();
     void resetHeadersOrder();
-    void updateCheckStatus(int row, int col);
     QString getDate(QString fileName);
 
     QPushButton *m_showRegistredDates;
-    QPushButton *m_reloadDatabase;
+    QPushButton *m_refreshDatabase;
     QPushButton *m_clearFilters;
     QPushButton *m_config;
     QComboBox *m_filterCategory;

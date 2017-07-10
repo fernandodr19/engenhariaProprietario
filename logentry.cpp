@@ -8,19 +8,19 @@ LogEntry::LogEntry()
 
 void LogEntry::load(const QString& _data, const QStringList& fields)
 {
-    feito = false;
+    done = false;
     downloaded = false;
-    obra = fields[0];
-    evento = fields[1];
-    tipo = fields[2];
-    nome = fields[3];
-    usuario = fields[4];
-    empresa = fields[5];
-    hora = fields[6];
-    caminho = fields[7];
-    arquivo = fields[8];
-    data = _data;
-    epochTime = getEpochTime(data, hora);
+    work = fields[0];
+    event = fields[1];
+    type = fields[2];
+    name = fields[3];
+    user = fields[4];
+    company = fields[5];
+    hour = fields[6];
+    path = fields[7];
+    file = fields[8];
+    date = _data;
+    epochTime = getEpochTime(date, hour);
 }
 
 qint64 LogEntry::getEpochTime(const QString& date, const QString& time)

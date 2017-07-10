@@ -13,18 +13,18 @@ public:
     void load(const QString& _data, const QStringList& fields);
     static qint64 getEpochTime(const QString& date, const QString& time);
 
-    bool feito;
+    bool done;
     bool downloaded;
-    QString obra;
-    QString evento;
-    QString tipo;
-    QString nome;
-    QString usuario;
-    QString empresa;
-    QString hora;
-    QString caminho;
-    QString arquivo;
-    QString data;
+    QString work;
+    QString event;
+    QString type;
+    QString name;
+    QString user;
+    QString company;
+    QString hour;
+    QString path;
+    QString file;
+    QString date;
     qint64 epochTime;
 };
 
