@@ -25,6 +25,7 @@ private:
     QLabel *m_topografiaData;
     QVector<GraphData> generateBarChartData();
     void plotBarChart();
+    void plotNumbers(QCustomPlot *customPlot, QVector<int> numbers, int x, double maxHeight);
     QVector<DayInfo> generateTimeSeriesData();
     void plotTimeSeries();
     QString getDate(QString data);

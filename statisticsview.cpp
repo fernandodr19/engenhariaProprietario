@@ -149,6 +149,18 @@ void StatisticsView::plotBarChart()
                 maxHeight = height;
         }
 
+        QVector<int> numbers;
+        int x = 1;
+        for(const GraphBar& bar : bars) {
+            numbers.clear();
+            numbers.append(bar.liberado);
+            numbers.append(bar.aprovado);
+            numbers.append(bar.aprovadoRessalva);
+            numbers.append(bar.reprovado);
+            numbers.append(bar.listado);
+            plotNumbers(customPlot, numbers, x++, maxHeight);
+        }
+
         released->setData(ticks, releasedData);
         approved->setData(ticks, approvedData);
         approved->setData(ticks, approvedData);
@@ -172,7 +184,7 @@ void StatisticsView::plotBarChart()
         // prepare y axis:
         customPlot->yAxis->setRange(0, std::max(12.1, maxHeight));
         customPlot->yAxis->setPadding(5); // a bit more space to the left border
-        customPlot->yAxis->setLabel("Número de registros???");
+        customPlot->yAxis->setLabel("Número de registros");
         customPlot->yAxis->setBasePen(QPen(Qt::white));
         customPlot->yAxis->setTickPen(QPen(Qt::white));
         customPlot->yAxis->setSubTickPen(QPen(Qt::white));
@@ -201,6 +213,23 @@ void StatisticsView::plotBarChart()
         customPlot->plotLayout()->addElement(0,0, title);
 
         m_gridLayout->addWidget(customPlot, row++, 0);
+    }
+}
+
+void StatisticsView::plotNumbers(QCustomPlot *customPlot, QVector<int> numbers, int x, double maxHeight)
+{
+    int h = 0;
+    for(int n : numbers) {
+        if(n/maxHeight < 0.08) {
+            h += n;
+            continue;
+        }
+        QCPItemText *dispersionText = new QCPItemText(customPlot);
+        dispersionText->position->setCoords(x, h + n/2);
+        dispersionText->setText(QString::number(n));
+        dispersionText->setFont(QFont(font().family(), 10));
+        dispersionText->setColor(Qt::white);
+        h += n;
     }
 }
 
