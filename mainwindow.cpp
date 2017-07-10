@@ -79,12 +79,12 @@ MainWindow::MainWindow(QWidget *parent)
             m_historicFilter = true;
         else
             m_historicFilter = false;
-        m_table->setColumnHidden(col_Done, m_historicFilter);
+        m_table->setColumnHidden(col_Forwarded, m_historicFilter);
         m_table->setColumnHidden(col_Downloaded, m_historicFilter);
         populateTable();
     });
 
-    m_headersName = QStringList({"Feito", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"});
+    m_headersName = QStringList({"Encaminhado", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"});
 
     m_table = new QTableWidget(0, 11);
     m_table->setHorizontalHeaderLabels(m_headersName);
@@ -94,7 +94,7 @@ MainWindow::MainWindow(QWidget *parent)
         m_headersOrder.move(from, to);
     });
     connect(m_table, &QTableWidget::cellClicked, [this](int row, int column) {
-        if(column != col_Done && column != col_Downloaded)
+        if(column != col_Forwarded && column != col_Downloaded)
             return;
 
         QTableWidgetItem *item = m_table->item(row, column);
@@ -232,7 +232,7 @@ void MainWindow::insertRow(const LogEntry& logEntry, int row)
     if(!m_table->isColumnHidden(++col)) {
         QTableWidgetItem *item = new QTableWidgetItem();
         item->data(Qt::CheckStateRole);
-        if(logEntry.done)
+        if(logEntry.forwarded)
             item->setCheckState(Qt::Checked);
         else
             item->setCheckState(Qt::Unchecked);

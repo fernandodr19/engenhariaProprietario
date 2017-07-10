@@ -13,7 +13,7 @@ extern QSettings *g_settings;
 
 Database::Database()
 {
-    m_publicDatabasePath = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\database.ini";
+    m_publicDatabasePath = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados\\database.ini";
 }
 
 void Database::load()
@@ -24,7 +24,7 @@ void Database::load()
     m_approvedWithCommentsFilter = g_settings->value("approvedWithCommentsFilter", false).toBool();
     m_reprovedFilter = g_settings->value("reprovedFilter", false).toBool();
 
-    QStringList headersName = {"Feito", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"};
+    QStringList headersName = {"Encaminhado", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"};
 
     int size = g_settings->beginReadArray("showColumns");
     for(int i = 0; i < size; ++i) {
@@ -117,7 +117,7 @@ void Database::loadActiveFilesCheckedState()
     QSettings settings(m_publicDatabasePath, QSettings::IniFormat);
     for(const QString& fileName : settings.childGroups()) {
         settings.beginGroup(fileName);
-        m_activeFiles[fileName].done = settings.value("done", false).toBool();
+        m_activeFiles[fileName].forwarded = settings.value("done", false).toBool();//checkHere modificar aqui depois
         m_activeFiles[fileName].downloaded = settings.value("downloaded", false).toBool();
         settings.endGroup();
     }
@@ -229,8 +229,8 @@ void Database::createFilesFromLogEntries()
 
 void Database::updateCheckStatus(const QString& file, bool checked, int col)
 {
-    if(col == col_Done)
-        m_activeFiles[file].done = checked;
+    if(col == col_Forwarded)
+        m_activeFiles[file].forwarded = checked;
     if(col == col_Downloaded)
         m_activeFiles[file].downloaded = checked;
     SaveThread *sThread = new SaveThread(m_publicDatabasePath, file, checked, (column)col);

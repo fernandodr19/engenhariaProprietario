@@ -9,11 +9,11 @@ void SaveThread::saveActiveFilesCheckStatus()
 {
     QSettings settings(m_databasePath, QSettings::IniFormat);
     settings.beginGroup(m_fileName);
-    if(m_col == col_Done) {
+    if(m_col == col_Forwarded) {
         if(m_checked)
-            settings.setValue("done", true);
+            settings.setValue("forwarded", true);
         else
-            settings.remove("done");
+            settings.remove("forwarded");
     } else {
         if(m_checked)
             settings.setValue("downloaded", true);

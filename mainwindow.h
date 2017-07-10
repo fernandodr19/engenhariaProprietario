@@ -6,7 +6,7 @@
 #include <statisticsview.h>
 
 enum column {
-    col_Done = 0,
+    col_Forwarded = 0,
     col_Downloaded,
     col_Work,
     col_Event,
