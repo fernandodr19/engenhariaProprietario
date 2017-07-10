@@ -63,10 +63,10 @@ MainWindow::MainWindow(QWidget *parent)
     m_showRegistredDates->setIcon(QIcon("icons\\calendar.png"));
     connect(m_showRegistredDates, &QPushButton::clicked, [this](){ showRegistredDates(); });
 
-    m_refreshDatabase = new QPushButton("Atualizar o banco de dados");
-    m_refreshDatabase->setIcon(QIcon("icons\\refresh.png"));
-    m_refreshDatabase->setShortcut(QKeySequence("F5"));
-    connect(m_refreshDatabase, &QPushButton::clicked, [this](){
+    m_reloadDatabase = new QPushButton("Atualizar o banco de dados");
+    m_reloadDatabase->setIcon(QIcon("icons\\refresh.png"));
+    m_reloadDatabase->setShortcut(QKeySequence("F5"));
+    connect(m_reloadDatabase, &QPushButton::clicked, [this](){
         reloadDatabase();
     });
 
@@ -151,7 +151,7 @@ MainWindow::MainWindow(QWidget *parent)
     int row = 0;
     int col = 0;
     gridLayout->addWidget(m_showRegistredDates, row, col++);
-    gridLayout->addWidget(m_refreshDatabase, row, col++);
+    gridLayout->addWidget(m_reloadDatabase, row, col++);
     gridLayout->addWidget(m_statisticsButton, row, col++);
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
@@ -648,6 +648,7 @@ void MainWindow::reloadDatabase()
 {
     g_database->reloadLogEntries();
     populateTable();
+    QMessageBox::information(nullptr, "Sucesso", "O banco de dados foi atualizado com sucesso", QMessageBox::Ok);
 }
 
 QString MainWindow::getDate(QString fileName)

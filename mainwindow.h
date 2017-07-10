@@ -67,7 +67,7 @@ private:
     QString getDate(QString fileName);
 
     QPushButton *m_showRegistredDates;
-    QPushButton *m_refreshDatabase;
+    QPushButton *m_reloadDatabase;
     QPushButton *m_statisticsButton;
     QPushButton *m_clearFilters;
     QPushButton *m_config;
