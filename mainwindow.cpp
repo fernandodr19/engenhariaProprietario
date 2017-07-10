@@ -25,6 +25,8 @@
 #include <QCalendarWidget>
 #include <QStatusBar>
 #include <QPainter>
+#include <QDir>
+#include <QFileDialog>
 #include "statisticsview.h"
 #include "database.h"
 
@@ -497,6 +499,15 @@ void MainWindow::openMenu()
     QHBoxLayout *hPath = new QHBoxLayout;
     hPath->addWidget(new QLabel("Caminho da pasta com os arquivos "), 0);
     hPath->addWidget(filesPath);
+    QPushButton *findPath = new QPushButton("Procurar");
+    connect(findPath, &QPushButton::clicked, [&filesPath]() {
+        QString directoryPath = QFileDialog::getExistingDirectory(nullptr, "Procurar pasta", QDir::homePath());
+        if(directoryPath.isEmpty())
+            return;
+
+        filesPath->setText(directoryPath);
+    });
+    hPath->addWidget(findPath);
 
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
