@@ -496,7 +496,7 @@ void MainWindow::openMenu()
     QString filesPathText = filesPath->text();
     if(g_database->getFilesPath() != filesPathText) {
         g_database->setFilesPath(filesPathText);
-        g_database->loadLogEntriesFromFile();
+        g_database->reloadLogEntries();
     }
     populateTable();
 }
