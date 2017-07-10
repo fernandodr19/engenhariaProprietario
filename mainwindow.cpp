@@ -23,6 +23,8 @@
 #include <QSettings>
 #include <QApplication>
 #include <QCalendarWidget>
+#include <QStatusBar>
+#include <QPainter>
 #include "statisticsview.h"
 #include "database.h"
 
@@ -108,23 +110,54 @@ MainWindow::MainWindow(QWidget *parent)
         g_database->updateCheckStatus(file, checked, column);
     });
 
-    QPushButton *statisticsButton = new QPushButton("Estatísticas");
-    statisticsButton->setIcon(QIcon("icons\\statistic.png"));
-    connect(statisticsButton, &QPushButton::clicked, [this]() {
+    m_statisticsButton = new QPushButton("Estatísticas");
+    m_statisticsButton->setIcon(QIcon("icons\\statistic.png"));
+    connect(m_statisticsButton, &QPushButton::clicked, [this]() {
         openStatisticsDialog();
     });
+
+    m_statusBar = new QStatusBar();
+    m_statusBar->addWidget(new QLabel(""), 1);
+    m_statusBar->addWidget(new QLabel("Legenda: "));
+    QPixmap myPix(QSize(20,20));
+    QPainter painter(&myPix);
+    painter.setBrush(Qt::white);
+    painter.drawRect(0, 0, 20, 20);
+    QLabel *whiteSquare = new QLabel();
+    whiteSquare->setPixmap(myPix);
+    m_statusBar->addWidget(whiteSquare);
+    m_statusBar->addWidget(new QLabel("Menos de 3 dias"));
+    painter.setBrush(Qt::yellow);
+    painter.drawRect(0, 0, 20, 20);
+    QLabel *yellowSquare = new QLabel();
+    yellowSquare->setPixmap(myPix);
+    m_statusBar->addWidget(yellowSquare);
+    m_statusBar->addWidget(new QLabel("Entre 3 e 5 dias"));
+    painter.setBrush(QColor(255,165,0));
+    painter.drawRect(0, 0, 20, 20);
+    QLabel *orangeSquare = new QLabel();
+    orangeSquare->setPixmap(myPix);
+    m_statusBar->addWidget(orangeSquare);
+    m_statusBar->addWidget(new QLabel("Entre 5 e 7 dias"));
+    painter.setBrush(QColor(255, 50, 70));
+    painter.drawRect(0, 0, 20, 20);
+    QLabel *redSquare = new QLabel();
+    redSquare->setPixmap(myPix);
+    m_statusBar->addWidget(redSquare);
+    m_statusBar->addWidget(new QLabel("Mais de 7 dias"));
 
     int row = 0;
     int col = 0;
     gridLayout->addWidget(m_showRegistredDates, row, col++);
     gridLayout->addWidget(m_refreshDatabase, row, col++);
-    gridLayout->addWidget(statisticsButton, row, col++);
+    gridLayout->addWidget(m_statisticsButton, row, col++);
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
     gridLayout->addWidget(m_clearFilters, row, col++);
     gridLayout->addWidget(new QLabel("Listar"), row, col++);
     gridLayout->addWidget(m_filterCategory, row++, col++);
     gridLayout->addWidget(m_table, row++, 0, 1, col);
+    gridLayout->addWidget(m_statusBar, row++, 0, 1, col);
 
     updateFromDatabase();
     initializeTable();

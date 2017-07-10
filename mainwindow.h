@@ -26,6 +26,7 @@ class QPushButton;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QSettings;
+class QStatusBar;
 
 class MainWindow : public QScrollArea
 {
@@ -67,10 +68,13 @@ private:
 
     QPushButton *m_showRegistredDates;
     QPushButton *m_refreshDatabase;
+    QPushButton *m_statisticsButton;
     QPushButton *m_clearFilters;
     QPushButton *m_config;
     QComboBox *m_filterCategory;
     QTableWidget *m_table;
+    QStatusBar *m_statusBar;
+
     QStringList m_readDates;
 
     //FILTERS
