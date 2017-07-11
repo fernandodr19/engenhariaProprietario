@@ -359,7 +359,7 @@ void MainWindow::resetHeadersOrder()
 {
     for(int i = 0; i < m_headersName.size(); i++) {
         int index = m_headersOrder.indexOf(m_headersName[i]);
-        if(index != i) {
+        if(index >= 0 && index != i) {
             m_table->horizontalHeader()->blockSignals(true);
             m_table->horizontalHeader()->moveSection(index, i);
             m_headersOrder.move(index, i);

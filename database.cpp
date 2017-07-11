@@ -136,7 +136,11 @@ void Database::updateFiles()
                 evento == "Reprovado Cliente") {
             m_historicFiles.push_back(logEntry);
         }
-        m_activeFiles[key] = logEntry;
+
+        if(evento == "Exclusão")
+            m_activeFiles.remove(key);
+        else
+            m_activeFiles[key] = logEntry;
     }
 }
 
@@ -166,7 +170,8 @@ void Database::loadLogEntriesFromFile()
                     logEntry.event == "Reprovado Cliente" ||
                     logEntry.event == "Aprovado Cliente c/ Ressalvas" ||
                     logEntry.event == "Transferindo para Versão" ||
-                    logEntry.event == "Lista de Documentos") {
+                    logEntry.event == "Lista de Documentos" ||
+                    logEntry.event == "Exclusão") {
                 m_logEntries.push_back(logEntry);
             }
         }
