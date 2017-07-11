@@ -13,7 +13,6 @@ extern QSettings *g_settings;
 
 Database::Database()
 {
-    m_publicDatabasePath = "X:\\Linhas\\Em Andamento\\EQUATORIAL\\Controle EP\\dados\\database.ini";
 }
 
 void Database::load()
@@ -114,11 +113,14 @@ void Database::save()
 
 void Database::loadActiveFilesCheckedState()
 {
-    QSettings settings(m_publicDatabasePath, QSettings::IniFormat);
+    QSettings settings(m_filesPath + "\\database.ini", QSettings::IniFormat);
     for(const QString& fileName : settings.childGroups()) {
         settings.beginGroup(fileName);
-        m_activeFiles[fileName].forwarded = settings.value("forwarded", false).toBool();
-        m_activeFiles[fileName].downloaded = settings.value("downloaded", false).toBool();
+        auto it = m_activeFiles.find(fileName);
+        if(it != m_activeFiles.end()) {
+            it.value().forwarded = settings.value("forwarded", false).toBool();
+            it.value().downloaded = settings.value("downloaded", false).toBool();
+        }
         settings.endGroup();
     }
 }
@@ -233,7 +235,6 @@ void Database::updateCheckStatus(const QString& file, bool checked, int col)
         m_activeFiles[file].forwarded = checked;
     if(col == col_Downloaded)
         m_activeFiles[file].downloaded = checked;
-    SaveThread *sThread = new SaveThread(m_publicDatabasePath, file, checked, (column)col);
+    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", file, checked, (column)col);
     sThread->start();
-    sThread->connect(sThread, SIGNAL(finished()), sThread, SLOT(deleteLater()));
 }

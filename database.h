@@ -65,8 +65,6 @@ private:
     QMap<QString, LogEntry> m_activeFiles;
     QVector<LogEntry> m_historicFiles;
 
-    QString m_publicDatabasePath;
-
     QSettings m_settings;
 };
 

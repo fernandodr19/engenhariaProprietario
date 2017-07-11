@@ -3,6 +3,7 @@
 SaveThread::SaveThread(const QString& databasePath, const QString& fileName, bool checked, column col) :
     m_databasePath(databasePath), m_fileName(fileName), m_checked(checked), m_col(col)
 {
+    connect(this, SIGNAL(finished()), this, SLOT(deleteLater()));
 }
 
 void SaveThread::saveActiveFilesCheckStatus()
