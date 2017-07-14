@@ -41,7 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
     setMinimumHeight(768);
     setWidgetResizable(true);
     setFrameShape(QFrame::NoFrame);
-    setWindowTitle("Consulta EP");
+    setWindowTitle("Consulta EP - " + g_database->getFilesPath());
     setWindowIcon(QIcon("icons\\logo32.ico"));
 
     QWidget *proxyWidget = new QWidget;
@@ -540,6 +540,7 @@ void MainWindow::openMenu()
     QString filesPathText = filesPath->text();
     if(g_database->getFilesPath() != filesPathText) {
         g_database->setFilesPath(filesPathText);
+        setWindowTitle("Consulta EP - " + g_database->getFilesPath());
         g_database->reloadLogEntries();
     }
     populateTable();
