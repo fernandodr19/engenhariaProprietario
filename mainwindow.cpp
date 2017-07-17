@@ -27,6 +27,7 @@
 #include <QPainter>
 #include <QDir>
 #include <QFileDialog>
+#include <QMenu>
 #include "statisticsview.h"
 #include "database.h"
 
@@ -97,7 +98,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_table->horizontalHeader(), &QHeaderView::sectionMoved, [this](int, int from, int to) {
         m_headersOrder.move(from, to);
     });
-    connect(m_table, &QTableWidget::cellClicked, [this](int row, int column) {
+    connect(m_table, &QTableWidget::cellChanged, [this](int row, int column) {
         if(column != col_Forwarded && column != col_Downloaded)
             return;
 
@@ -110,6 +111,10 @@ MainWindow::MainWindow(QWidget *parent)
             checked = false;
 
         g_database->updateCheckStatus(file, checked, column);
+    });
+    m_table->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_table, &QTableWidget::customContextMenuRequested, [this](QPoint p) {
+        customMenuRequested(p);
     });
 
     m_statisticsButton = new QPushButton("Estatísticas");
@@ -232,6 +237,7 @@ void MainWindow::populateTable()
     m_table->clearContents();
     m_table->setRowCount(0);
     m_table->setSortingEnabled(false);
+    m_table->blockSignals(true);
 
     QStringList events = getEventos();
     int row = 0;
@@ -258,6 +264,7 @@ void MainWindow::populateTable()
     }
     m_table->resizeColumnsToContents();
     m_table->setSortingEnabled(true);
+    m_table->blockSignals(false);
 }
 
 void MainWindow::insertRow(const LogEntry& logEntry, int row)
@@ -732,4 +739,39 @@ void MainWindow::setEnabled(QTreeWidgetItem *item)
         item->setFlags(item->flags() &= ~Qt::ItemIsEnabled);
     else
         item->setFlags(item->flags() | Qt::ItemIsEnabled);
+}
+
+void MainWindow::customMenuRequested(QPoint p)
+{
+    QMenu *menu = new QMenu();
+    QAction *selectAll = menu->addAction("Marcar todos");
+    connect(selectAll, &QAction::triggered, [this]() {
+        for(QTableWidgetItem* item : m_table->selectedItems()) {
+            int row = item->row();
+            int col = item->column();
+
+            if(col != col_Forwarded && col != col_Downloaded)
+                continue;
+
+            QString file = m_table->item(row, col_Name)->text();
+            m_table->item(row, col)->setCheckState(Qt::Checked);
+            g_database->updateCheckStatus(file, true, col);
+        }
+    });
+
+    QAction *unselectAll = menu->addAction("Desmarcar todos");
+    connect(unselectAll, &QAction::triggered, [this]() {
+        for(QTableWidgetItem* item : m_table->selectedItems()) {
+            int row = item->row();
+            int col = item->column();
+
+            if(col != col_Forwarded && col != col_Downloaded)
+                continue;
+
+            QString file = m_table->item(row, col_Name)->text();
+            m_table->item(row, col)->setCheckState(Qt::Unchecked);
+            g_database->updateCheckStatus(file, false, col);
+        }
+    });
+    menu->popup(m_table->viewport()->mapToGlobal(p));
 }

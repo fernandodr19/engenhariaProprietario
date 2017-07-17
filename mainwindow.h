@@ -65,6 +65,7 @@ private:
     void updateHeadersOrder();
     void resetHeadersOrder();
     QString getDate(QString fileName);
+    void customMenuRequested(QPoint p);
 
     QPushButton *m_showRegistredDates;
     QPushButton *m_reloadDatabase;
