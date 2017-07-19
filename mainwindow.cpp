@@ -28,6 +28,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QMenu>
+#include <QInputDialog>
 #include "statisticsview.h"
 #include "database.h"
 
@@ -99,7 +100,7 @@ MainWindow::MainWindow(QWidget *parent)
         m_headersOrder.move(from, to);
     });
     connect(m_table, &QTableWidget::cellChanged, [this](int row, int column) {
-        if(column != col_Forwarded && column != col_Downloaded)
+        if(column != col_Downloaded)
             return;
 
         QTableWidgetItem *item = m_table->item(row, column);
@@ -110,7 +111,7 @@ MainWindow::MainWindow(QWidget *parent)
         else
             checked = false;
 
-        g_database->updateCheckStatus(file, checked, column);
+        g_database->updateDownloaded(file, checked);
     });
     m_table->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_table, &QTableWidget::customContextMenuRequested, [this](QPoint p) {
@@ -226,10 +227,11 @@ QStringList MainWindow::getEventos()
 void MainWindow::initializeTable()
 {
     updateHeadersOrder();
-    populateTable();
 
     m_table->setSortingEnabled(true);
     m_table->sortByColumn(col_DateHour, Qt::AscendingOrder);
+
+    populateTable();
 }
 
 void MainWindow::populateTable()
@@ -272,13 +274,7 @@ void MainWindow::insertRow(const LogEntry& logEntry, int row)
     m_table->insertRow(row);
     int col = -1;
     if(!m_table->isColumnHidden(++col)) {
-        QTableWidgetItem *item = new QTableWidgetItem();
-        item->data(Qt::CheckStateRole);
-        if(logEntry.forwarded)
-            item->setCheckState(Qt::Checked);
-        else
-            item->setCheckState(Qt::Unchecked);
-        m_table->setItem(row, col, item);
+        m_table->setItem(row, col, new QTableWidgetItem(logEntry.forwarded));
     }
     if(!m_table->isColumnHidden(++col)) {
         QTableWidgetItem *item = new QTableWidgetItem();
@@ -323,17 +319,17 @@ void MainWindow::paintRow(qint64 epochTime, int row)
     double delayedDays = diff/day;
 
     if(delayedDays > 7) {
-        for(int col = 2; col < m_table->columnCount(); col++) {
+        for(int col = 0; col < m_table->columnCount(); col++) {
             if(!m_table->isColumnHidden(col))
                 m_table->item(row, col)->setBackgroundColor(QColor(255, 50, 70));
         }
     } else if(delayedDays > 5) {
-        for(int col = 2; col < m_table->columnCount(); col++) {
+        for(int col = 0; col < m_table->columnCount(); col++) {
             if(!m_table->isColumnHidden(col))
                 m_table->item(row, col)->setBackgroundColor(QColor(255,165,0));
         }
     } else if(delayedDays > 3) {
-        for(int col = 2; col < m_table->columnCount(); col++) {
+        for(int col = 0; col < m_table->columnCount(); col++) {
             if(!m_table->isColumnHidden(col))
                 m_table->item(row, col)->setBackgroundColor(QColor(Qt::yellow));
         }
@@ -502,6 +498,11 @@ void MainWindow::openMenu()
     QGroupBox *groupBoxPaths = new QGroupBox("Filtro por caminhos");
     groupBoxPaths->setLayout(vBoxPaths);
 
+    QPushButton *editEmployees = new QPushButton("Editar funcionários");
+    connect(editEmployees, &QPushButton::clicked, [this]() {
+        this->editEmployees();
+    });
+
     QLineEdit *filesPath = new QLineEdit(g_database->getFilesPath());
     QHBoxLayout *hPath = new QHBoxLayout;
     hPath->addWidget(new QLabel("Caminho da pasta com os arquivos "), 0);
@@ -516,7 +517,6 @@ void MainWindow::openMenu()
     });
     hPath->addWidget(findPath);
 
-
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
 
     connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
@@ -526,6 +526,8 @@ void MainWindow::openMenu()
     gridLayout->addWidget(groupBoxVisibleCol, row, 0);
     gridLayout->addWidget(groupBoxPaths, row++, 1, 2, 1);
     gridLayout->addWidget(groupBoxEvents, row++, 0);
+    gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, 0);
+    gridLayout->addWidget(editEmployees, row++, 1);
     gridLayout->addLayout(hPath, row++, 0, 1, 2);
     gridLayout->addWidget(buttonBox, row++, 1);
 
@@ -749,13 +751,11 @@ void MainWindow::customMenuRequested(QPoint p)
         for(QTableWidgetItem* item : m_table->selectedItems()) {
             int row = item->row();
             int col = item->column();
-
-            if(col != col_Forwarded && col != col_Downloaded)
-                continue;
-
-            QString file = m_table->item(row, col_Name)->text();
-            m_table->item(row, col)->setCheckState(Qt::Checked);
-            g_database->updateCheckStatus(file, true, col);
+            if(col == col_Downloaded) {
+                QString file = m_table->item(row, col_Name)->text();
+                m_table->item(row, col)->setCheckState(Qt::Checked);
+                g_database->updateDownloaded(file, true);
+            }
         }
     });
 
@@ -765,13 +765,108 @@ void MainWindow::customMenuRequested(QPoint p)
             int row = item->row();
             int col = item->column();
 
-            if(col != col_Forwarded && col != col_Downloaded)
-                continue;
+            if(col == col_Forwarded) {
+                QString file = m_table->item(row, col_Name)->text();
+                m_table->item(row, col)->setText("");
+                g_database->updateForwarded(file, "");
+            }
 
-            QString file = m_table->item(row, col_Name)->text();
-            m_table->item(row, col)->setCheckState(Qt::Unchecked);
-            g_database->updateCheckStatus(file, false, col);
+            if(col == col_Downloaded) {
+                QString file = m_table->item(row, col_Name)->text();
+                m_table->item(row, col)->setCheckState(Qt::Unchecked);
+                g_database->updateDownloaded(file, false);
+            }
         }
     });
+
+    QMenu *forward = menu->addMenu("Encaminhar para:");
+    for(const QString& person : g_database->getEmployees()) {
+        QAction *action = forward->addAction(person);
+        connect(action, &QAction::triggered, [this, action]() {
+            for(QTableWidgetItem* item : m_table->selectedItems()) {
+                int row = item->row();
+                int col = item->column();
+                if(col == col_Forwarded) {
+                    QString file = m_table->item(row, col_Name)->text();
+                    m_table->item(row, col)->setText(action->text());
+                    g_database->updateForwarded(file, action->text());
+                }
+            }
+        });
+    }
     menu->popup(m_table->viewport()->mapToGlobal(p));
+}
+
+void MainWindow::editEmployees()
+{
+    QDialog dialog;
+    dialog.setWindowTitle("Funcionários");
+    dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+    QGridLayout* gridLayout = new QGridLayout();
+    dialog.setLayout(gridLayout);
+
+    QStringList employees = g_database->getEmployees();
+    QTableWidget *table = new QTableWidget(employees.size(), 1);
+    table->setHorizontalHeaderLabels({"Funcionários"});
+    for(int row = 0; row < employees.size(); row++)
+        table->setItem(row, 0, new QTableWidgetItem(employees[row]));
+    table->resizeColumnsToContents();
+    connect(table, &QTableWidget::itemChanged, [this, table]() {
+        //cell edited
+        g_database->updateEmployees(getTableEmployees(table));
+    });
+
+    QHBoxLayout *hLayout = new QHBoxLayout;
+
+    QPushButton *add = new QPushButton("Adicionar");
+    connect(add, &QPushButton::clicked, [this, table]() {
+        bool ok;
+        QString name = QInputDialog::getText(0, "Novo funcionário", "Nome :", QLineEdit::Normal, "", &ok);
+        if(ok && !name.isEmpty()) {
+            if(getTableEmployees(table).contains(name))
+                return;
+            int row = table->rowCount();
+            table->insertRow(row);
+            table->setItem(row, 0, new QTableWidgetItem(name));
+
+            g_database->updateEmployees(getTableEmployees(table));
+        }
+    });
+    QPushButton *remove = new QPushButton("Remover");
+    connect(remove, &QPushButton::clicked, [this, table]() {
+        for(QTableWidgetItem* item : table->selectedItems())
+            table->removeRow(item->row());
+        g_database->updateEmployees(getTableEmployees(table));
+    });
+    QPushButton *edit = new QPushButton("Editar");
+    connect(edit, &QPushButton::clicked, [this, table]() {
+        if(table->selectedItems().size() != 1)
+            return;
+
+        QTableWidgetItem *selected = table->selectedItems()[0];
+        bool ok;
+        QString name = QInputDialog::getText(0, "Editar funcionário", "Nome :", QLineEdit::Normal, selected->text(), &ok);
+        if(ok) {
+            selected->setText(name);
+            g_database->updateEmployees(getTableEmployees(table));
+        }
+    });
+    hLayout->addWidget(add);
+    hLayout->addWidget(remove);
+    hLayout->addWidget(edit);
+
+    int row = 0;
+    gridLayout->addWidget(table, row++, 0 );
+    gridLayout->addLayout(hLayout, row++, 0);
+
+    dialog.exec();
+}
+
+QStringList MainWindow::getTableEmployees(QTableWidget *table)
+{
+    QStringList employees;
+    for(int i = 0; i < table->rowCount(); i++)
+        employees.push_back(table->item(i, 0)->text());
+    return employees;
 }

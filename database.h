@@ -25,6 +25,7 @@ public:
     QVector<bool> getShowColumns() { return m_showColumns; }
     const QMap<QString, LogEntry>& getActiveFiles() { return m_activeFiles; }
     const QVector<LogEntry>& getHistoricFiles() { return m_historicFiles; }
+    QStringList getEmployees();
 
     void setFilesPath(const QString& path) { m_filesPath = path; }
     void setHistoricFilter(bool historicFilter) { m_historicFilter = historicFilter; }
@@ -40,9 +41,11 @@ public:
 
     void reloadLogEntries();
     void loadLogEntriesFromFile();
-    void updateCheckStatus(const QString& file, bool checked, int col);
+    void updateDownloaded(const QString& file, bool checked);
+    void updateForwarded(const QString& file, const QString &person);
+    void updateEmployees(const QStringList& employes);
 private:
-    void loadActiveFilesCheckedState();
+    void loadActiveFilesState();
     void saveActiveFilesCheckStatus();
     void createFilesFromLogEntries();
     void updateFiles();
@@ -64,6 +67,7 @@ private:
     QString m_filesPath;
     QMap<QString, LogEntry> m_activeFiles;
     QVector<LogEntry> m_historicFiles;
+    QStringList m_employees;
 
     QSettings m_settings;
 };

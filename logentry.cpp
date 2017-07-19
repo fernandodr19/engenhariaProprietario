@@ -8,7 +8,7 @@ LogEntry::LogEntry()
 
 void LogEntry::load(const QString& _data, const QStringList& fields)
 {
-    forwarded = false;
+    forwarded = "";
     downloaded = false;
     work = fields[0];
     event = fields[1];

@@ -11,16 +11,21 @@ class SaveThread : public QThread
 {
 
 public:
-    SaveThread(const QString& databasePath, const QString& fileName, bool checked, column col);
+    SaveThread(const QString& databasePath, const QString& fileName, bool checked);
+    SaveThread(const QString& databasePath, const QString& fileName, const QString &person);
+    SaveThread(const QString& databasePath, const QStringList& employes);
 
-    void saveActiveFilesCheckStatus();
+    void saveActiveFilesStatus();
 
     QString m_databasePath;
     QString m_fileName;
-    bool m_checked;
+    bool m_downloaded;
+    QString m_person;
     column m_col;
+    QStringList m_employees;
+    bool m_updateEmployees = false;
 protected:
-    void run() { saveActiveFilesCheckStatus(); }
+    void run() { saveActiveFilesStatus(); }
 };
 
 #endif // SAVETHREAD_H

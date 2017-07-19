@@ -66,6 +66,8 @@ private:
     void resetHeadersOrder();
     QString getDate(QString fileName);
     void customMenuRequested(QPoint p);
+    void editEmployees();
+    QStringList getTableEmployees(QTableWidget *table);
 
     QPushButton *m_showRegistredDates;
     QPushButton *m_reloadDatabase;

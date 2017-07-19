@@ -13,7 +13,7 @@ public:
     void load(const QString& _data, const QStringList& fields);
     static qint64 getEpochTime(const QString& date, const QString& time);
 
-    bool forwarded;
+    QString forwarded;
     bool downloaded;
     QString work;
     QString event;

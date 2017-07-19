@@ -71,7 +71,7 @@ void Database::load()
 
     loadLogEntriesFromFile();
     createFilesFromLogEntries();
-    loadActiveFilesCheckedState();
+    loadActiveFilesState();
 }
 
 void Database::save()
@@ -111,18 +111,40 @@ void Database::save()
     g_settings->endArray();
 }
 
-void Database::loadActiveFilesCheckedState()
+void Database::loadActiveFilesState()
 {
     QSettings settings(m_filesPath + "\\database.ini", QSettings::IniFormat);
     for(const QString& fileName : settings.childGroups()) {
         settings.beginGroup(fileName);
         auto it = m_activeFiles.find(fileName);
         if(it != m_activeFiles.end()) {
-            it.value().forwarded = settings.value("forwarded", false).toBool();
+            if(settings.value("forwarded").toString() == "true") //remover esse if depois
+                it.value().forwarded = "Não informado";
+            else
+                it.value().forwarded = settings.value("forwarded").toString();
             it.value().downloaded = settings.value("downloaded", false).toBool();
         }
         settings.endGroup();
     }
+}
+
+QStringList Database::getEmployees()
+{
+    m_employees.clear();
+    QSettings settings(m_filesPath + "\\database.ini", QSettings::IniFormat);
+    int size = settings.beginReadArray("employees");
+    for(int i = 0; i < size; ++i) {
+        settings.setArrayIndex(i);
+        QString employee = settings.value("employee").toString();
+        m_employees.push_back(employee);
+    }
+    settings.endArray();
+
+    std::sort(m_employees.begin(), m_employees.end(), [this](const QString& a, const QString& b) {
+        return a < b;
+    });
+
+    return m_employees;
 }
 
 void Database::updateFiles()
@@ -224,7 +246,7 @@ void Database::reloadLogEntries()
 {
     loadLogEntriesFromFile();
     createFilesFromLogEntries();
-    loadActiveFilesCheckedState();
+    loadActiveFilesState();
 }
 
 void Database::createFilesFromLogEntries()
@@ -234,12 +256,23 @@ void Database::createFilesFromLogEntries()
     updateFiles();
 }
 
-void Database::updateCheckStatus(const QString& file, bool checked, int col)
+void Database::updateDownloaded(const QString& file, bool checked)
 {
-    if(col == col_Forwarded)
-        m_activeFiles[file].forwarded = checked;
-    if(col == col_Downloaded)
-        m_activeFiles[file].downloaded = checked;
-    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", file, checked, (column)col);
+    m_activeFiles[file].downloaded = checked;
+    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", file, checked);
+    sThread->start();
+}
+
+void Database::updateForwarded(const QString& file, const QString& person)
+{
+    m_activeFiles[file].forwarded = person;
+    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", file, person);
+    sThread->start();
+}
+
+void Database::updateEmployees(const QStringList &employes)
+{
+    m_employees = employes;
+    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", employes);
     sThread->start();
 }
