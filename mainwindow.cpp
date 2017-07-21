@@ -695,7 +695,7 @@ void MainWindow::updateUndesirabelPaths(const QVector<QTreeWidgetItem*>& items)
         QString path = getPath(item);
         undesirablePaths.push_back(path);
     }
-    g_database->setUndesirablePaths(undesirablePaths);
+    g_database->addUndesirablePaths(undesirablePaths);
 }
 
 bool MainWindow::containsUndesirablePath(const QString &path)

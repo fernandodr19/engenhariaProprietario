@@ -33,10 +33,10 @@ public:
     void setApprovedFilter(bool approvedFitler) { m_approvedFilter = approvedFitler; }
     void setApprovedWithCommentsFilter(bool approvedWithComments) { m_approvedWithCommentsFilter = approvedWithComments; }
     void setReprovedFilter(bool reprovedFilter) { m_reprovedFilter = reprovedFilter; }
-    void setUndesirablePaths(const QStringList& undesirablePaths) { m_undesirablePaths = undesirablePaths; }
     void setHeadersOrder(const QStringList& headersOrder) { m_headersOrder = headersOrder; }
     void setShowColumns(const QVector<bool>& showColumns) { m_showColumns = showColumns; }
 
+    void addUndesirablePaths(const QStringList& undesirablePaths);
     void clearUndesirablePaths() { m_undesirablePaths.clear(); }
 
     void reloadLogEntries();
