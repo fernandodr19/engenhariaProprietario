@@ -377,10 +377,15 @@ QTreeWidget* MainWindow::getTree()
     treeWidget->setHeaderHidden(true);
 
     connect(treeWidget, &QTreeWidget::itemClicked, [this](QTreeWidgetItem *item){
-        for(int i = 0; i < item->childCount(); ++i) {
+        for(int i = 0; i < item->childCount(); ++i)
             setEnabled(item->child(i));
-        }
 
+        bool checked;
+        if(item->checkState(0) == Qt::Checked)
+            checked = true;
+        else
+            checked = false;
+        g_database->updateUndesirablePaths(getPath(item), checked);
     });
     QTreeWidgetItem *topLevelItem;
 
@@ -503,6 +508,11 @@ void MainWindow::openMenu()
         this->editEmployees();
     });
 
+    QPushButton *showUndesirablePaths = new QPushButton("Exibir caminhos indesejáveis");
+    connect(showUndesirablePaths, &QPushButton::clicked, [this]() {
+        this->showUndesirablePaths();
+    });
+
     QLineEdit *filesPath = new QLineEdit(g_database->getFilesPath());
     QHBoxLayout *hPath = new QHBoxLayout;
     hPath->addWidget(new QLabel("Caminho da pasta com os arquivos "), 0);
@@ -517,22 +527,22 @@ void MainWindow::openMenu()
     });
     hPath->addWidget(findPath);
 
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
-
-    connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
-    connect(buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
+    QPushButton *ok = new QPushButton("Ok");
+    connect(ok, SIGNAL(clicked()), &dialog, SLOT(accept()));
+    QHBoxLayout *okLayout = new QHBoxLayout;
+    okLayout->addWidget(new QLabel(""), 1);
+    okLayout->addWidget(ok);
 
     int row = 0;
     gridLayout->addWidget(groupBoxVisibleCol, row, 0);
     gridLayout->addWidget(groupBoxPaths, row++, 1, 2, 1);
     gridLayout->addWidget(groupBoxEvents, row++, 0);
-    gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, 0);
-    gridLayout->addWidget(editEmployees, row++, 1);
+    gridLayout->addWidget(editEmployees, row, 0);
+    gridLayout->addWidget(showUndesirablePaths, row++, 1);
     gridLayout->addLayout(hPath, row++, 0, 1, 2);
-    gridLayout->addWidget(buttonBox, row++, 1);
+    gridLayout->addLayout(okLayout, row++, 1);
 
-    if(dialog.exec() != QDialog::Accepted)
-        return;
+    dialog.exec();
 
     for(int i = 0; i < checkBoxesCol.size(); i++) {
         bool show = checkBoxesCol[i]->isChecked();
@@ -543,8 +553,6 @@ void MainWindow::openMenu()
     m_approvedFilter = approvedBox->isChecked();
     m_approvedWithCommentsFilter = approvedWithCommentsBox->isChecked();
     m_reprovedFilter = reprovedBox->isChecked();
-
-    visitTree(treeWidget);
 
     QString filesPathText = filesPath->text();
     if(g_database->getFilesPath() != filesPathText) {
@@ -671,33 +679,6 @@ QString MainWindow::getDate(QString fileName)
     return day + "/" + month + "/" + year;
 }
 
-void MainWindow::visitTree(QVector<QTreeWidgetItem*>& list, QTreeWidgetItem *item)
-{
-    if(item->checkState(0) == Qt::Unchecked)
-        list.push_back(item);
-    for(int i=0;i<item->childCount(); ++i) {
-        visitTree(list, item->child(i));
-    }
-}
-
-void MainWindow::visitTree(QTreeWidget *tree)
-{
-    QVector<QTreeWidgetItem*> uncheckdItems;
-    for(int i=0;i<tree->topLevelItemCount();++i)
-        visitTree(uncheckdItems, tree->topLevelItem(i));
-    updateUndesirabelPaths(uncheckdItems);
-}
-
-void MainWindow::updateUndesirabelPaths(const QVector<QTreeWidgetItem*>& items)
-{
-    QStringList undesirablePaths;
-    for(QTreeWidgetItem* item : items) {
-        QString path = getPath(item);
-        undesirablePaths.push_back(path);
-    }
-    g_database->addUndesirablePaths(undesirablePaths);
-}
-
 bool MainWindow::containsUndesirablePath(const QString &path)
 {
     for(const QString& undesirablePath : g_database->getUndesirablePaths())
@@ -795,6 +776,29 @@ void MainWindow::customMenuRequested(QPoint p)
         });
     }
     menu->popup(m_table->viewport()->mapToGlobal(p));
+}
+
+void MainWindow::showUndesirablePaths()
+{
+    QDialog dialog;
+    dialog.setWindowTitle("Caminhos indesejáveis");
+    dialog.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+    QGridLayout* gridLayout = new QGridLayout();
+    dialog.setLayout(gridLayout);
+
+    QTableWidget *table = new QTableWidget(0, 1);
+    table->setHorizontalHeaderLabels({"Caminhos"});
+    int row = 0;
+    for(const QString& path : g_database->getUndesirablePaths()) {
+        table->insertRow(row);
+        table->setItem(row++, 0, new QTableWidgetItem(path));
+    }
+    table->resizeColumnsToContents();
+
+    gridLayout->addWidget(table, 0, 0);
+
+    dialog.exec();
 }
 
 void MainWindow::editEmployees()

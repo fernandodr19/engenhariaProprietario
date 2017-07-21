@@ -54,9 +54,6 @@ private:
     void openStatisticsDialog();
     void openStatisticsView(statistic_graph g);
     void paintRow(qint64, int row);
-    void visitTree(QVector<QTreeWidgetItem*> &list, QTreeWidgetItem *item);
-    void visitTree(QTreeWidget *tree);
-    void updateUndesirabelPaths(const QVector<QTreeWidgetItem *>& items);
     bool containsUndesirablePath(const QString& path);
     bool isUndesirablePath(const QString& path);
     QString getPath(QTreeWidgetItem *item);
@@ -67,6 +64,7 @@ private:
     QString getDate(QString fileName);
     void customMenuRequested(QPoint p);
     void editEmployees();
+    void showUndesirablePaths();
     QStringList getTableEmployees(QTableWidget *table);
 
     QPushButton *m_showRegistredDates;

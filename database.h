@@ -36,7 +36,7 @@ public:
     void setHeadersOrder(const QStringList& headersOrder) { m_headersOrder = headersOrder; }
     void setShowColumns(const QVector<bool>& showColumns) { m_showColumns = showColumns; }
 
-    void addUndesirablePaths(const QStringList& undesirablePaths);
+    void updateUndesirablePaths(const QString &path, bool desirable);
     void clearUndesirablePaths() { m_undesirablePaths.clear(); }
 
     void reloadLogEntries();

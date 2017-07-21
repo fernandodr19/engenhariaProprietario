@@ -256,11 +256,13 @@ void Database::createFilesFromLogEntries()
     updateFiles();
 }
 
-void Database::addUndesirablePaths(const QStringList &undesirablePaths)
+void Database::updateUndesirablePaths(const QString& path, bool desirable)
 {
-    for(const QString& undesirablePath : undesirablePaths)
-        if(!m_undesirablePaths.contains(undesirablePath))
-            m_undesirablePaths.push_back(undesirablePath);
+    if(desirable)
+        m_undesirablePaths.removeOne(path);
+    else
+        if(!m_undesirablePaths.contains(path))
+            m_undesirablePaths.push_back(path);
 }
 
 void Database::updateDownloaded(const QString& file, bool checked)
