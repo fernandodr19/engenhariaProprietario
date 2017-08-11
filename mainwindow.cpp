@@ -885,7 +885,7 @@ QStringList MainWindow::getTableEmployees(QTableWidget *table)
 
 void MainWindow::exportExcel()
 {
-    QString fileName = QFileDialog::getSaveFileName(nullptr, "Exportar Excel", QDir::homePath(), "CSV File (*.csv)");
+    QString fileName = QFileDialog::getSaveFileName(nullptr, "Exportar Excel", QFileInfo(QDir::homePath(), "engProprietario").absoluteFilePath(), "CSV File (*.csv)");
     if(fileName.isEmpty())
         return;
 
@@ -909,5 +909,6 @@ void MainWindow::exportExcel()
         }
         cells.push_back("\n");
     }
-    doc.exportExcelFile(fileName, cells);
+    if(!doc.exportExcelFile(fileName, cells))
+        QMessageBox::critical(nullptr, "Erro", "Não foi possível salvar o arquivo.", QMessageBox::Ok);
 }

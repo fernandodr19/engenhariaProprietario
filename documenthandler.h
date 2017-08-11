@@ -10,7 +10,7 @@ class DocumentHandler
 public:
     DocumentHandler();
 
-    void exportExcelFile(const QString& fileName, const QStringList& cells);
+    bool exportExcelFile(const QString& fileName, const QStringList& cells);
 };
 
 #endif // DOCUMENTHANDLER_H
