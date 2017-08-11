@@ -66,10 +66,12 @@ private:
     void editEmployees();
     void showUndesirablePaths();
     QStringList getTableEmployees(QTableWidget *table);
+    void exportExcel();
 
     QPushButton *m_showRegistredDates;
     QPushButton *m_reloadDatabase;
     QPushButton *m_statisticsButton;
+    QPushButton *m_exportExcelButton;
     QPushButton *m_clearFilters;
     QPushButton *m_config;
     QComboBox *m_filterCategory;

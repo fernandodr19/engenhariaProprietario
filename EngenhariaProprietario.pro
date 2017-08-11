@@ -33,7 +33,8 @@ SOURCES += \
     statisticsview.cpp \
     thirdparty/qcustomplot/qcustomplot.cpp \
     graphdata.cpp \
-    savethread.cpp
+    savethread.cpp \
+    documenthandler.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -42,6 +43,7 @@ HEADERS += \
     statisticsview.h \
     thirdparty/qcustomplot/qcustomplot.h \
     graphdata.h \
-    savethread.h
+    savethread.h \
+    documenthandler.h
 
 win32:RC_FILE = resources.rc

@@ -31,6 +31,7 @@
 #include <QInputDialog>
 #include "statisticsview.h"
 #include "database.h"
+#include "documenthandler.h"
 
 #include <QDebug>
 
@@ -124,6 +125,12 @@ MainWindow::MainWindow(QWidget *parent)
         openStatisticsDialog();
     });
 
+    m_exportExcelButton = new QPushButton("Exportar para Excel");
+    m_exportExcelButton->setIcon(QIcon("icons\\excel.png"));
+    connect(m_exportExcelButton, &QPushButton::clicked, [this]() {
+        exportExcel();
+    });
+
     m_statusBar = new QStatusBar();
     m_statusBar->addWidget(new QLabel(""), 1);
     m_statusBar->addWidget(new QLabel("Legenda: "));
@@ -159,6 +166,7 @@ MainWindow::MainWindow(QWidget *parent)
     gridLayout->addWidget(m_showRegistredDates, row, col++);
     gridLayout->addWidget(m_reloadDatabase, row, col++);
     gridLayout->addWidget(m_statisticsButton, row, col++);
+    gridLayout->addWidget(m_exportExcelButton, row, col++);
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
     gridLayout->addWidget(m_clearFilters, row, col++);
@@ -873,4 +881,33 @@ QStringList MainWindow::getTableEmployees(QTableWidget *table)
     for(int i = 0; i < table->rowCount(); i++)
         employees.push_back(table->item(i, 0)->text());
     return employees;
+}
+
+void MainWindow::exportExcel()
+{
+    QString fileName = QFileDialog::getSaveFileName(nullptr, "Exportar Excel", QDir::homePath(), "CSV File (*.csv)");
+    if(fileName.isEmpty())
+        return;
+
+    DocumentHandler doc;
+    QStringList cells;
+
+    for(int col = 0; col < m_table->columnCount(); col++)
+        if(!m_table->isColumnHidden(col))
+            cells.push_back(m_table->model()->headerData(col, Qt::Horizontal).toString() + "\t");
+    cells.push_back("\n");
+
+    for(int row = 0; row < m_table->rowCount(); row++) {
+        for(int col = 0; col < m_table->columnCount(); col++) {
+            if(!m_table->isColumnHidden(col)) {
+                if (col == 1 && m_table->item(row, col)->checkState() == Qt::Checked) {
+                    cells.push_back("true\t");
+                } else {
+                    cells.push_back(m_table->item(row, col)->text() + "\t");
+                }
+            }
+        }
+        cells.push_back("\n");
+    }
+    doc.exportExcelFile(fileName, cells);
 }
