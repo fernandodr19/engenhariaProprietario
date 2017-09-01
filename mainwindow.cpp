@@ -118,6 +118,15 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_table, &QTableWidget::customContextMenuRequested, [this](QPoint p) {
         customMenuRequested(p);
     });
+    connect(m_table, &QTableWidget::itemSelectionChanged, [this]() {
+        QVector<int> rows;
+        for(QTableWidgetItem* item : m_table->selectedItems()) {
+            int row = item->row();
+            if(!rows.contains(row))
+                rows.push_back(row);
+        }
+        m_selectedWorsCount->setText(QString::number(rows.size()));
+    });
 
     m_statisticsButton = new QPushButton("Estatísticas");
     m_statisticsButton->setIcon(QIcon("icons\\statistic.png"));
@@ -131,7 +140,11 @@ MainWindow::MainWindow(QWidget *parent)
         exportExcel();
     });
 
+    m_selectedWorsCount = new QLabel();
+
     m_statusBar = new QStatusBar();
+    m_statusBar->addWidget(new QLabel("Linhas selecionadas: "));
+    m_statusBar->addWidget(m_selectedWorsCount);
     m_statusBar->addWidget(new QLabel(""), 1);
     m_statusBar->addWidget(new QLabel("Legenda: "));
     QPixmap myPix(QSize(20,20));
