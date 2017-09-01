@@ -79,7 +79,7 @@ private:
     QStatusBar *m_statusBar;
 
     QStringList m_readDates;
-    QLabel *m_selectedWorsCount;
+    QLabel *m_selectedRowsCount;
 
     //FILTERS
     bool m_historicFilter; //historico/atual
