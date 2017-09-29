@@ -187,6 +187,18 @@ void Database::loadLogEntriesFromFile()
             QStringList fields = line.split("\t");
             LogEntry logEntry;
             logEntry.load(data, fields);
+
+            QDateTime d = QDateTime::fromMSecsSinceEpoch(logEntry.epochTime);
+            if(d < QDateTime(QDate(2017, 8, 2))) { // Nasty hack: old logs didnt have the prefix.
+                const QString& path = logEntry.path;
+                if(path.startsWith("\\Lote 08") || path.startsWith("\\Lote 09") || path.startsWith("\\Lote 12"))
+                    logEntry.path = "\\LINHÃO BA-PI - LOTES 08, 09, 12 (TBAPI)" + path;
+                else if(path.startsWith("\\Lote 14 A") || path.startsWith("\\Lote 14 B") || path.startsWith("\\Lote 15") || path.startsWith("\\Lote 16"))
+                    logEntry.path = "\\LINHÃO MG-BA - LOTES 14, 15, 16 (TMGBA)" + path;
+                else if(path.startsWith("\\Lote 23"))
+                    logEntry.path = "\\LINHÃO PA - LOTE 23 (TPARA)" + path;
+            }
+
             if(logEntry.event == "Aprovado Cliente" ||
                     logEntry.event == "Liberado para Cliente" ||
                     logEntry.event == "Reprovado Cliente" ||
