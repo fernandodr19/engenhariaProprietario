@@ -201,6 +201,7 @@ void MainWindow::updateFromDatabase()
     m_approvedFilter = g_database->getApprovedFilter();
     m_approvedWithCommentsFilter = g_database->getApprovedWithCommentsFilter();
     m_reprovedFilter = g_database->getReprovedFilter();
+    m_movedFilter = g_database->getMovedFilter();
 
     QVector<bool> showColumns = g_database->getShowColumns();
     for(int i = 0; i < m_table->columnCount(); ++i) {
@@ -219,6 +220,7 @@ void MainWindow::updateToDatabase()
     g_database->setApprovedFilter(m_approvedFilter);
     g_database->setApprovedWithCommentsFilter(m_approvedWithCommentsFilter);
     g_database->setReprovedFilter(m_reprovedFilter);
+    g_database->setMovedFilter(m_movedFilter);
 
     QVector<bool> showColumns;
     for(int i = 0; i < m_table->columnCount(); ++i)
@@ -235,10 +237,14 @@ QStringList MainWindow::getEventos()
         eventos.push_back("Liberado para Cliente");
     if(m_approvedFilter)
         eventos.push_back("Aprovado Cliente");
-    if(m_approvedWithCommentsFilter)
+    if(m_approvedWithCommentsFilter) {
         eventos.push_back("Aprovado Cliente c/ Ressalvas");
+        eventos.push_back("Aprovado Cliente c/ Ressalva");
+    }
     if(m_reprovedFilter)
         eventos.push_back("Reprovado Cliente");
+    if(m_movedFilter)
+        eventos.push_back("Mover / Copiar Arquivo");
     return eventos;
 }
 
@@ -499,18 +505,21 @@ void MainWindow::openMenu()
 
     QVBoxLayout *vBoxEvents = new QVBoxLayout;
 
-    QCheckBox  *releasedBox = new QCheckBox ("Liberado para Cliente");
+    QCheckBox *releasedBox = new QCheckBox("Liberado para Cliente");
     releasedBox->setChecked(m_releasedFilter);
     vBoxEvents->addWidget(releasedBox);
-    QCheckBox  *approvedBox = new QCheckBox ("Aprovado Cliente");
+    QCheckBox *approvedBox = new QCheckBox("Aprovado Cliente");
     approvedBox->setChecked(m_approvedFilter);
     vBoxEvents->addWidget(approvedBox);
-    QCheckBox  *approvedWithCommentsBox = new QCheckBox ("Aprovado Cliente c/ Ressalvas");
+    QCheckBox *approvedWithCommentsBox = new QCheckBox("Aprovado Cliente c/ Ressalvas");
     approvedWithCommentsBox->setChecked(m_approvedWithCommentsFilter);
     vBoxEvents->addWidget(approvedWithCommentsBox);
-    QCheckBox  *reprovedBox = new QCheckBox ("Reprovado Cliente");
+    QCheckBox *reprovedBox = new QCheckBox ("Reprovado Cliente");
     reprovedBox->setChecked(m_reprovedFilter);
     vBoxEvents->addWidget(reprovedBox);
+    QCheckBox *movedBox = new QCheckBox ("Mover / Copiar Arquivo");
+    movedBox->setChecked(m_movedFilter);
+    vBoxEvents->addWidget(movedBox);
 
     QGroupBox *groupBoxEvents = new QGroupBox("Exibir Eventos");
     groupBoxEvents->setLayout(vBoxEvents);
@@ -571,6 +580,7 @@ void MainWindow::openMenu()
     m_approvedFilter = approvedBox->isChecked();
     m_approvedWithCommentsFilter = approvedWithCommentsBox->isChecked();
     m_reprovedFilter = reprovedBox->isChecked();
+    m_movedFilter = movedBox->isChecked();
 
     QString filesPathText = filesPath->text();
     if(g_database->getFilesPath() != filesPathText) {
@@ -637,6 +647,7 @@ void MainWindow::clearFilters()
     m_approvedFilter = false;
     m_approvedWithCommentsFilter = false;
     m_reprovedFilter = false;
+    m_movedFilter = false;
 
     for(int i = 0; i < m_table->columnCount(); i++)
         m_table->setColumnHidden(i, false);

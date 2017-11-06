@@ -22,6 +22,7 @@ void Database::load()
     m_approvedFilter = g_settings->value("approvedFilter", false).toBool();
     m_approvedWithCommentsFilter = g_settings->value("approvedWithCommentsFilter", false).toBool();
     m_reprovedFilter = g_settings->value("reprovedFilter", false).toBool();
+    m_movedFilter = g_settings->value("movedFilter", false).toBool();
 
     QStringList headersName = {"Encaminhado", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"};
 
@@ -81,6 +82,7 @@ void Database::save()
     g_settings->setValue("approvedFilter", m_approvedFilter);
     g_settings->setValue("approvedWithCommentsFilter", m_approvedWithCommentsFilter);
     g_settings->setValue("reprovedFilter", m_reprovedFilter);
+    g_settings->setValue("movedFilter", m_movedFilter);
 
     g_settings->beginWriteArray("showColumns");
     for(int i = 0; i < m_showColumns.size(); ++i) {
@@ -154,12 +156,15 @@ void Database::updateFiles()
         const QString& evento = logEntry.event;
         if(evento == "Liberado para Cliente" ||
                 evento == "Aprovado Cliente" ||
+                evento == "Aprovado Cliente c/ Ressalva" ||
                 evento == "Aprovado Cliente c/ Ressalvas" ||
+                evento == "Para Informação" ||
+                evento == "Mover / Copiar Arquivo" ||
                 evento == "Reprovado Cliente") {
             m_historicFiles.push_back(logEntry);
         }
 
-        if(evento == "Exclusão")
+        if(evento == "Exclusão" /*|| evento == "Exclusão de versão"*/)
             m_activeFiles.remove(key);
         else
             m_activeFiles[key] = logEntry;
@@ -199,12 +204,25 @@ void Database::loadLogEntriesFromFile()
                     logEntry.path = "\\LINHÃO PA - LOTE 23 (TPARA)" + path;
             }
 
+            if(logEntry.event == "Mover / Copiar Arquivo") {
+                if(logEntry.type == "Arquivo") {
+                    QStringList l = logEntry.path.split('\\');
+                    if(!l.empty())
+                        logEntry.name = l.last();
+                }
+            }
+
             if(logEntry.event == "Aprovado Cliente" ||
                     logEntry.event == "Liberado para Cliente" ||
                     logEntry.event == "Reprovado Cliente" ||
+                    logEntry.event == "Aprovado Cliente c/ Ressalva" ||
                     logEntry.event == "Aprovado Cliente c/ Ressalvas" ||
                     logEntry.event == "Transferindo para Versão" ||
+                    logEntry.event == "Em aprovação" ||
                     logEntry.event == "Lista de Documentos" ||
+                    logEntry.event == "Para Informação" ||
+                    logEntry.event == "Mover / Copiar Arquivo" ||
+                    //logEntry.event == "Exclusão de versão" ||
                     logEntry.event == "Exclusão") {
                 m_logEntries.push_back(logEntry);
             }
@@ -291,9 +309,9 @@ void Database::updateForwarded(const QString& file, const QString& person)
     sThread->start();
 }
 
-void Database::updateEmployees(const QStringList &employes)
+void Database::updateEmployees(const QStringList& employees)
 {
-    m_employees = employes;
-    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", employes);
+    m_employees = employees;
+    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", employees);
     sThread->start();
 }

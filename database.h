@@ -20,6 +20,7 @@ public:
     bool getApprovedFilter() { return m_approvedFilter; }
     bool getApprovedWithCommentsFilter() { return m_approvedWithCommentsFilter; }
     bool getReprovedFilter() { return m_reprovedFilter; }
+    bool getMovedFilter() { return m_movedFilter; }
     QStringList getUndesirablePaths() { return m_undesirablePaths; }
     QStringList getHeadersOrder() { return m_headersOrder; }
     QVector<bool> getShowColumns() { return m_showColumns; }
@@ -33,6 +34,7 @@ public:
     void setApprovedFilter(bool approvedFitler) { m_approvedFilter = approvedFitler; }
     void setApprovedWithCommentsFilter(bool approvedWithComments) { m_approvedWithCommentsFilter = approvedWithComments; }
     void setReprovedFilter(bool reprovedFilter) { m_reprovedFilter = reprovedFilter; }
+    void setMovedFilter(bool movedFilter) { m_movedFilter = movedFilter; }
     void setHeadersOrder(const QStringList& headersOrder) { m_headersOrder = headersOrder; }
     void setShowColumns(const QVector<bool>& showColumns) { m_showColumns = showColumns; }
 
@@ -43,7 +45,7 @@ public:
     void loadLogEntriesFromFile();
     void updateDownloaded(const QString& file, bool checked);
     void updateForwarded(const QString& file, const QString &person);
-    void updateEmployees(const QStringList& employes);
+    void updateEmployees(const QStringList& employees);
 private:
     void loadActiveFilesState();
     void saveActiveFilesCheckStatus();
@@ -58,6 +60,7 @@ private:
     bool m_approvedFilter;
     bool m_approvedWithCommentsFilter;
     bool m_reprovedFilter;
+    bool m_movedFilter;
     QStringList m_undesirablePaths;
     QStringList m_headersOrder;
     QVector<bool> m_showColumns;

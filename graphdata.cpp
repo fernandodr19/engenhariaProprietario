@@ -16,7 +16,7 @@ void GraphBar::update(const LogEntry &file)
         liberado++;
     else if(file.event == "Aprovado Cliente")
         aprovado++;
-    else if(file.event == "Aprovado Cliente c/ Ressalvas")
+    else if(file.event == "Aprovado Cliente c/ Ressalvas" || file.event == "Aprovado Cliente c/ Ressalva")
         aprovadoRessalva++;
     else if(file.event == "Reprovado Cliente")
         reprovado++;
@@ -37,7 +37,7 @@ void DayInfo::update(const LogEntry &file)
         liberado++;
     else if(file.event == "Aprovado Cliente")
         aprovado++;
-    else if(file.event == "Aprovado Cliente c/ Ressalvas")
+    else if(file.event == "Aprovado Cliente c/ Ressalvas" || file.event == "Aprovado Cliente c/ Ressalva")
         aprovadoRessalva++;
     else if(file.event == "Reprovado Cliente")
         reprovado++;

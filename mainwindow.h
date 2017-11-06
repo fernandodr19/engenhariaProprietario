@@ -87,6 +87,7 @@ private:
     bool m_approvedFilter;
     bool m_approvedWithCommentsFilter;
     bool m_reprovedFilter;
+    bool m_movedFilter;
     QStringList m_headersOrder;
 
     QStringList m_headersName;
