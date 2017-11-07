@@ -27,6 +27,7 @@ class QTreeWidget;
 class QTreeWidgetItem;
 class QSettings;
 class QStatusBar;
+class QCheckBox;
 
 class MainWindow : public QScrollArea
 {
@@ -67,6 +68,7 @@ private:
     void showUndesirablePaths();
     QStringList getTableEmployees(QTableWidget *table);
     void exportExcel();
+    void filterPdfFiles();
 
     QPushButton *m_showRegistredDates;
     QPushButton *m_reloadDatabase;
@@ -77,6 +79,7 @@ private:
     QComboBox *m_filterCategory;
     QTableWidget *m_table;
     QStatusBar *m_statusBar;
+    QCheckBox *m_filterType;
 
     QStringList m_readDates;
     QLabel *m_selectedRowsCount;

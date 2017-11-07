@@ -91,6 +91,9 @@ MainWindow::MainWindow(QWidget *parent)
         populateTable();
     });
 
+    m_filterType = new QCheckBox("Exibir apenas .pdf");
+    connect(m_filterType, &QAbstractButton::toggled, this, &MainWindow::filterPdfFiles);
+
     m_headersName = QStringList({"Encaminhado", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"});
 
     m_table = new QTableWidget(0, 11);
@@ -177,6 +180,7 @@ MainWindow::MainWindow(QWidget *parent)
     gridLayout->addWidget(m_reloadDatabase, row, col++);
     gridLayout->addWidget(m_statisticsButton, row, col++);
     gridLayout->addWidget(m_exportExcelButton, row, col++);
+    gridLayout->addWidget(m_filterType, row, col++);
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
     gridLayout->addWidget(m_clearFilters, row, col++);
@@ -202,6 +206,7 @@ void MainWindow::updateFromDatabase()
     m_approvedWithCommentsFilter = g_database->getApprovedWithCommentsFilter();
     m_reprovedFilter = g_database->getReprovedFilter();
     m_movedFilter = g_database->getMovedFilter();
+    m_filterType->setChecked(g_database->getPdfFilterIsEnabled());
 
     QVector<bool> showColumns = g_database->getShowColumns();
     for(int i = 0; i < m_table->columnCount(); ++i) {
@@ -221,6 +226,7 @@ void MainWindow::updateToDatabase()
     g_database->setApprovedWithCommentsFilter(m_approvedWithCommentsFilter);
     g_database->setReprovedFilter(m_reprovedFilter);
     g_database->setMovedFilter(m_movedFilter);
+    g_database->setPdfFilterIsEnabled(m_filterType->isChecked());
 
     QVector<bool> showColumns;
     for(int i = 0; i < m_table->columnCount(); ++i)
@@ -275,6 +281,9 @@ void MainWindow::populateTable()
             if(!events.contains(logEntry.event))
                 continue;
 
+            if(m_filterType->isChecked() && !logEntry.name.endsWith(".pdf", Qt::CaseInsensitive))
+                continue;
+
             insertRow(logEntry, row++);
         }
     } else {
@@ -283,6 +292,9 @@ void MainWindow::populateTable()
                 continue;
 
             if(!events.contains(logEntry.event))
+                continue;
+
+            if(m_filterType->isChecked() && !logEntry.name.endsWith(".pdf", Qt::CaseInsensitive))
                 continue;
 
             insertRow(logEntry, row++);
@@ -932,4 +944,9 @@ void MainWindow::exportExcel()
     }
     if(!doc.exportExcelFile(fileName, cells))
         QMessageBox::critical(nullptr, "Erro", "Não foi possível salvar o arquivo.", QMessageBox::Ok);
+}
+
+void MainWindow::filterPdfFiles()
+{
+    populateTable();
 }

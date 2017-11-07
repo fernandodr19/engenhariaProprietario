@@ -27,6 +27,7 @@ public:
     const QMap<QString, LogEntry>& getActiveFiles() { return m_activeFiles; }
     const QVector<LogEntry>& getHistoricFiles() { return m_historicFiles; }
     QStringList getEmployees();
+    bool getPdfFilterIsEnabled() { return m_filterTypePdf; }
 
     void setFilesPath(const QString& path) { m_filesPath = path; }
     void setHistoricFilter(bool historicFilter) { m_historicFilter = historicFilter; }
@@ -37,6 +38,7 @@ public:
     void setMovedFilter(bool movedFilter) { m_movedFilter = movedFilter; }
     void setHeadersOrder(const QStringList& headersOrder) { m_headersOrder = headersOrder; }
     void setShowColumns(const QVector<bool>& showColumns) { m_showColumns = showColumns; }
+    void setPdfFilterIsEnabled(bool filterTypePdf) { m_filterTypePdf = filterTypePdf; }
 
     void updateUndesirablePaths(const QString &path, bool desirable);
     void clearUndesirablePaths() { m_undesirablePaths.clear(); }
@@ -61,6 +63,7 @@ private:
     bool m_approvedWithCommentsFilter;
     bool m_reprovedFilter;
     bool m_movedFilter;
+    bool m_filterTypePdf;
     QStringList m_undesirablePaths;
     QStringList m_headersOrder;
     QVector<bool> m_showColumns;

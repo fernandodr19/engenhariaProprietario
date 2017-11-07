@@ -23,6 +23,7 @@ void Database::load()
     m_approvedWithCommentsFilter = g_settings->value("approvedWithCommentsFilter", false).toBool();
     m_reprovedFilter = g_settings->value("reprovedFilter", false).toBool();
     m_movedFilter = g_settings->value("movedFilter", false).toBool();
+    m_filterTypePdf = g_settings->value("filterTypePdf", false).toBool();
 
     QStringList headersName = {"Encaminhado", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"};
 
@@ -83,6 +84,7 @@ void Database::save()
     g_settings->setValue("approvedWithCommentsFilter", m_approvedWithCommentsFilter);
     g_settings->setValue("reprovedFilter", m_reprovedFilter);
     g_settings->setValue("movedFilter", m_movedFilter);
+    g_settings->setValue("filterTypePdf", m_filterTypePdf);
 
     g_settings->beginWriteArray("showColumns");
     for(int i = 0; i < m_showColumns.size(); ++i) {
