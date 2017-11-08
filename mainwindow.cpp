@@ -94,6 +94,10 @@ MainWindow::MainWindow(QWidget *parent)
     m_filterType = new QCheckBox("Exibir apenas .pdf");
     connect(m_filterType, &QAbstractButton::toggled, this, &MainWindow::filterPdfFiles);
 
+    m_filterName = new QLineEdit();
+    m_filterName->setPlaceholderText("Filtrar nomes");
+    connect(m_filterName, &QLineEdit::textChanged, this, &MainWindow::filterName);
+
     m_headersName = QStringList({"Encaminhado", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"});
 
     m_table = new QTableWidget(0, 11);
@@ -181,6 +185,7 @@ MainWindow::MainWindow(QWidget *parent)
     gridLayout->addWidget(m_statisticsButton, row, col++);
     gridLayout->addWidget(m_exportExcelButton, row, col++);
     gridLayout->addWidget(m_filterType, row, col++);
+    gridLayout->addWidget(m_filterName, row, col++);
     gridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), row, col++);
     gridLayout->addWidget(m_config, row, col++);
     gridLayout->addWidget(m_clearFilters, row, col++);
@@ -284,6 +289,9 @@ void MainWindow::populateTable()
             if(m_filterType->isChecked() && !logEntry.name.endsWith(".pdf", Qt::CaseInsensitive))
                 continue;
 
+            if(!analyzeName(m_filterName->text(), logEntry.name))
+                continue;
+
             insertRow(logEntry, row++);
         }
     } else {
@@ -295,6 +303,9 @@ void MainWindow::populateTable()
                 continue;
 
             if(m_filterType->isChecked() && !logEntry.name.endsWith(".pdf", Qt::CaseInsensitive))
+                continue;
+
+            if(!analyzeName(m_filterName->text(), logEntry.name))
                 continue;
 
             insertRow(logEntry, row++);
@@ -949,4 +960,20 @@ void MainWindow::exportExcel()
 void MainWindow::filterPdfFiles()
 {
     populateTable();
+}
+
+void MainWindow::filterName()
+{
+    populateTable();
+}
+
+bool MainWindow::analyzeName(const QString& input, const QString& name)
+{
+    int startIndex = 0;
+    for(int i = 0; i < input.size(); i++) {
+        startIndex = name.indexOf(input.at(i), startIndex, Qt::CaseInsensitive) + 1;
+        if(startIndex == 0)
+            return false;
+    }
+    return true;
 }
