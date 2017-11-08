@@ -50,7 +50,7 @@ private:
     void reloadTableData();
     void populateTable();
     void insertRow(const LogEntry& logEntry, int row);
-    QStringList getEventos();
+    QSet<QString> getEventos();
     QTreeWidget* getTree();
     void openMenu();
     void openStatisticsDialog();

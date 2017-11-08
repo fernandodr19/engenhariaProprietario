@@ -241,21 +241,21 @@ void MainWindow::updateToDatabase()
     g_database->setHeadersOrder(m_headersOrder);
 }
 
-QStringList MainWindow::getEventos()
+QSet<QString> MainWindow::getEventos()
 {
-    QStringList eventos;
+    QSet<QString> eventos;
     if(m_releasedFilter)
-        eventos.push_back("Liberado para Cliente");
+        eventos.insert("Liberado para Cliente");
     if(m_approvedFilter)
-        eventos.push_back("Aprovado Cliente");
+        eventos.insert("Aprovado Cliente");
     if(m_approvedWithCommentsFilter) {
-        eventos.push_back("Aprovado Cliente c/ Ressalvas");
-        eventos.push_back("Aprovado Cliente c/ Ressalva");
+        eventos.insert("Aprovado Cliente c/ Ressalvas");
+        eventos.insert("Aprovado Cliente c/ Ressalva");
     }
     if(m_reprovedFilter)
-        eventos.push_back("Reprovado Cliente");
+        eventos.insert("Reprovado Cliente");
     if(m_movedFilter)
-        eventos.push_back("Mover / Copiar Arquivo");
+        eventos.insert("Mover / Copiar Arquivo");
     return eventos;
 }
 
@@ -271,18 +271,15 @@ void MainWindow::initializeTable()
 
 void MainWindow::populateTable()
 {
+    m_table->blockSignals(true);
     m_table->clearContents();
     m_table->setRowCount(0);
     m_table->setSortingEnabled(false);
-    m_table->blockSignals(true);
 
-    QStringList events = getEventos();
+    QSet<QString> events = getEventos();
     int row = 0;
     if(!m_historicFilter) {
         for(const LogEntry& logEntry : g_database->getActiveFiles()) {
-            if(containsUndesirablePath(logEntry.path))
-                continue;
-
             if(!events.contains(logEntry.event))
                 continue;
 
@@ -290,15 +287,15 @@ void MainWindow::populateTable()
                 continue;
 
             if(!analyzeName(m_filterName->text(), logEntry.name))
+                continue;
+
+            if(containsUndesirablePath(logEntry.path))
                 continue;
 
             insertRow(logEntry, row++);
         }
     } else {
         for(const LogEntry& logEntry : g_database->getHistoricFiles()) {
-            if(containsUndesirablePath(logEntry.path))
-                continue;
-
             if(!events.contains(logEntry.event))
                 continue;
 
@@ -306,6 +303,9 @@ void MainWindow::populateTable()
                 continue;
 
             if(!analyzeName(m_filterName->text(), logEntry.name))
+                continue;
+
+            if(containsUndesirablePath(logEntry.path))
                 continue;
 
             insertRow(logEntry, row++);
@@ -944,7 +944,7 @@ void MainWindow::exportExcel()
     for(int row = 0; row < m_table->rowCount(); row++) {
         for(int col = 0; col < m_table->columnCount(); col++) {
             if(!m_table->isColumnHidden(col)) {
-                if (col == 1 && m_table->item(row, col)->checkState() == Qt::Checked) {
+                if(col == 1 && m_table->item(row, col)->checkState() == Qt::Checked) {
                     cells.push_back("true\t");
                 } else {
                     cells.push_back(m_table->item(row, col)->text() + "\t");
