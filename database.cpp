@@ -25,7 +25,7 @@ void Database::load()
     m_movedFilter = g_settings->value("movedFilter", false).toBool();
     m_filterTypePdf = g_settings->value("filterTypePdf", false).toBool();
 
-    QStringList headersName = {"Encaminhado", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"};
+    QStringList headersName = {"Encaminhado", "Download", "Comentado", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"};
 
     int size = g_settings->beginReadArray("showColumns");
     for(int i = 0; i < size; ++i) {
@@ -127,6 +127,7 @@ void Database::loadActiveFilesState()
             else
                 it.value().forwarded = settings.value("forwarded").toString();
             it.value().downloaded = settings.value("downloaded", false).toBool();
+            it.value().commented = settings.value("commented", false).toBool();
         }
         settings.endGroup();
     }
@@ -297,10 +298,19 @@ void Database::updateUndesirablePaths(const QString& path, bool desirable)
             m_undesirablePaths.push_back(path);
 }
 
-void Database::updateDownloaded(const QString& file, bool checked)
+void Database::updateDownloaded(const QString& file, bool downloaded)
 {
-    m_activeFiles[file].downloaded = checked;
-    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", file, checked);
+    m_activeFiles[file].downloaded = downloaded;
+    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", file);
+    sThread->setDownloaded(downloaded);
+    sThread->start();
+}
+
+void Database::updateCommented(const QString &file, bool commented)
+{
+    m_activeFiles[file].commented = commented;
+    SaveThread *sThread = new SaveThread(m_filesPath + "\\database.ini", file);
+    sThread->setCommented(commented);
     sThread->start();
 }
 

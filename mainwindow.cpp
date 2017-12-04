@@ -88,6 +88,7 @@ MainWindow::MainWindow(QWidget *parent)
             m_historicFilter = false;
         m_table->setColumnHidden(col_Forwarded, m_historicFilter);
         m_table->setColumnHidden(col_Downloaded, m_historicFilter);
+        m_table->setColumnHidden(col_Commented, m_historicFilter);
         populateTable();
     });
 
@@ -98,9 +99,9 @@ MainWindow::MainWindow(QWidget *parent)
     m_filterName->setPlaceholderText("Filtrar nomes");
     connect(m_filterName, &QLineEdit::textChanged, this, &MainWindow::filterName);
 
-    m_headersName = QStringList({"Encaminhado", "Download", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"});
+    m_headersName = QStringList({"Encaminhado", "Download", "Comentado", "Obra", "Evento", "Tipo", "Arquivo", "Usuário", "Empresa", "Data/Hora", "Caminho", "Arquivos"});
 
-    m_table = new QTableWidget(0, 11);
+    m_table = new QTableWidget(0, 12);
     m_table->setHorizontalHeaderLabels(m_headersName);
     m_table->horizontalHeader()->setSectionsMovable(true);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -108,7 +109,7 @@ MainWindow::MainWindow(QWidget *parent)
         m_headersOrder.move(from, to);
     });
     connect(m_table, &QTableWidget::cellChanged, [this](int row, int column) {
-        if(column != col_Downloaded)
+        if(column != col_Downloaded && column != col_Commented)
             return;
 
         QTableWidgetItem *item = m_table->item(row, column);
@@ -119,7 +120,8 @@ MainWindow::MainWindow(QWidget *parent)
         else
             checked = false;
 
-        g_database->updateDownloaded(file, checked);
+        if (column == col_Downloaded) g_database->updateDownloaded(file, checked);
+        if (column == col_Commented) g_database->updateCommented(file, checked);
     });
     m_table->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_table, &QTableWidget::customContextMenuRequested, [this](QPoint p) {
@@ -286,7 +288,7 @@ void MainWindow::populateTable()
             if(m_filterType->isChecked() && !logEntry.name.endsWith(".pdf", Qt::CaseInsensitive))
                 continue;
 
-            if(!analyzeName(m_filterName->text(), logEntry.name))
+            if(!logEntry.name.contains(m_filterName->text(), Qt::CaseInsensitive))
                 continue;
 
             if(containsUndesirablePath(logEntry.path))
@@ -302,7 +304,7 @@ void MainWindow::populateTable()
             if(m_filterType->isChecked() && !logEntry.name.endsWith(".pdf", Qt::CaseInsensitive))
                 continue;
 
-            if(!analyzeName(m_filterName->text(), logEntry.name))
+            if(!logEntry.name.contains(m_filterName->text(), Qt::CaseInsensitive))
                 continue;
 
             if(containsUndesirablePath(logEntry.path))
@@ -326,12 +328,17 @@ void MainWindow::insertRow(const LogEntry& logEntry, int row)
     if(!m_table->isColumnHidden(++col)) {
         QTableWidgetItem *item = new QTableWidgetItem();
         item->data(Qt::CheckStateRole);
-        if(logEntry.downloaded)
-            item->setCheckState(Qt::Checked);
-        else
-            item->setCheckState(Qt::Unchecked);
+        item->setCheckState(logEntry.downloaded ? Qt::Checked : Qt::Unchecked);
         m_table->setItem(row, col, item);
     }
+
+    if(!m_table->isColumnHidden(++col)) {
+        QTableWidgetItem *item = new QTableWidgetItem();
+        item->data(Qt::CheckStateRole);
+        item->setCheckState(logEntry.commented ? Qt::Checked : Qt::Unchecked);
+        m_table->setItem(row, col, item);
+    }
+
     if(!m_table->isColumnHidden(++col))
         m_table->setItem(row, col, new QTableWidgetItem(logEntry.work));
     if(!m_table->isColumnHidden(++col))
@@ -965,15 +972,4 @@ void MainWindow::filterPdfFiles()
 void MainWindow::filterName()
 {
     populateTable();
-}
-
-bool MainWindow::analyzeName(const QString& input, const QString& name)
-{
-    int startIndex = 0;
-    for(int i = 0; i < input.size(); i++) {
-        startIndex = name.indexOf(input.at(i), startIndex, Qt::CaseInsensitive) + 1;
-        if(startIndex == 0)
-            return false;
-    }
-    return true;
 }

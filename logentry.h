@@ -15,6 +15,7 @@ public:
 
     QString forwarded;
     bool downloaded;
+    bool commented;
     QString work;
     QString event;
     QString type;

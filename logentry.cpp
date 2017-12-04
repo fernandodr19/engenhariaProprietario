@@ -10,6 +10,7 @@ void LogEntry::load(const QString& _data, const QStringList& fields)
 {
     forwarded = "";
     downloaded = false;
+    commented = false;
     work = fields[0];
     event = fields[1];
     type = fields[2];

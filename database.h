@@ -45,7 +45,8 @@ public:
 
     void reloadLogEntries();
     void loadLogEntriesFromFile();
-    void updateDownloaded(const QString& file, bool checked);
+    void updateDownloaded(const QString& file, bool downloaded);
+    void updateCommented(const QString& file, bool commented);
     void updateForwarded(const QString& file, const QString &person);
     void updateEmployees(const QStringList& employees);
 private:

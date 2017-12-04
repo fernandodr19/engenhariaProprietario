@@ -8,6 +8,7 @@
 enum column {
     col_Forwarded = 0,
     col_Downloaded,
+    col_Commented,
     col_Work,
     col_Event,
     col_Type,

@@ -1,9 +1,8 @@
 #include "savethread.h"
 
-SaveThread::SaveThread(const QString& databasePath, const QString& fileName, bool checked) :
-    m_databasePath(databasePath), m_fileName(fileName), m_downloaded(checked)
+SaveThread::SaveThread(const QString& databasePath, const QString& fileName) :
+    m_databasePath(databasePath), m_fileName(fileName)
 {
-    m_col = col_Downloaded;
     connect(this, SIGNAL(finished()), this, SLOT(deleteLater()));
 }
 
@@ -18,6 +17,18 @@ SaveThread::SaveThread(const QString& databasePath, const QStringList &employes)
     m_databasePath(databasePath), m_employees(employes)
 {
     m_updateEmployees = true;
+}
+
+void SaveThread::setCommented(bool commented)
+{
+    m_col = col_Commented;
+    m_commented = commented;
+}
+
+void SaveThread::setDownloaded(bool downloaded)
+{
+    m_col = col_Downloaded;
+    m_downloaded = downloaded;
 }
 
 void SaveThread::saveActiveFilesStatus()
@@ -37,11 +48,16 @@ void SaveThread::saveActiveFilesStatus()
                 settings.setValue("forwarded", m_person);
             else
                 settings.remove("forwarded");
-        } else {
+        } else if(m_col == col_Downloaded) {
             if(m_downloaded)
                 settings.setValue("downloaded", true);
             else
                 settings.remove("downloaded");
+        } else if (m_col == col_Commented){
+            if(m_commented)
+                settings.setValue("commented", true);
+            else
+                settings.remove("commented");
         }
         settings.endGroup();
     }
