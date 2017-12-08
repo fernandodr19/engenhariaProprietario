@@ -225,6 +225,7 @@ void Database::loadLogEntriesFromFile()
                     logEntry.event == "Lista de Documentos" ||
                     logEntry.event == "Para Informação" ||
                     logEntry.event == "Mover / Copiar Arquivo" ||
+                    logEntry.event == "Aceito" ||
                     //logEntry.event == "Exclusão de versão" ||
                     logEntry.event == "Exclusão") {
                 m_logEntries.push_back(logEntry);
